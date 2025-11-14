@@ -1,3 +1,18 @@
+# Variables de entorno
 .env
+
+# Certificados y claves privadas
+*.key
+*.crt
+*.pem
+certs/
+
+# Archivos de configuración local
 *.txt
-/.vscode
+.vscode/
+
+# Archivos compilados
+*.o
+*.out
+*.exe
+main

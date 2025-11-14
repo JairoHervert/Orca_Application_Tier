@@ -4,14 +4,13 @@
 
 #include <iostream>
 #include "infrastructure/config/ConfigEnv.hpp"
-// #include "interfaces/HttpApi.hpp"
-#include <httplib.h>
+#include "interfaces/HttpApi.hpp"
 
 
 int main() {
    try {
       // Cargar variables de entorno desde .env
-      ConfigEnv config = loadConfigFromEnv();
+      ConfigEnv configEnvs = loadConfigFromEnv();
 
 
       // 1. Infraestructura
@@ -20,14 +19,12 @@ int main() {
       // 2. Casos de uso (aplicación)
       //  CreateRepositoryUseCase createRepoUseCase{repoStore};
 
-
-      httplib::Server server;
-      server.Get("/hi", [](const httplib::Request&, httplib::Response& res) {
-         res.set_content("Hello World!", "text/plain");
-      });
-
-      std::cout << "Servidor HTTPS en " << config.serverHost << ":" << config.serverPort << std::endl;
-      server.listen(config.serverHost, config.serverPort);
+      // 2. Crear e inicializar API
+      HttpApi http_api(configEnvs.sslCertPath.c_str(), configEnvs.sslKeyPath.c_str());
+      http_api.registerRoutes();
+      
+      // 3. Iniciar servidor
+      http_api.listen(configEnvs.serverHost.c_str(), configEnvs.serverPort);
 
    }
    catch (const std::exception &e) {

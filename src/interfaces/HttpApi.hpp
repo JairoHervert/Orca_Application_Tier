@@ -1,16 +1,18 @@
 #pragma once
+#define CPPHTTPLIB_OPENSSL_SUPPORT
 #include <httplib.h>
 
 class HttpApi {
 public:
-   HttpApi();
+   // Constructor
+   HttpApi(const char* certPath, const char* keyPath);
 
-   // Registras rutas usando los casos de uso necesarios
-   // void registerRoutes(CreateRepositoryUseCase& createRepoUseCase);
+   // Registrar rutas para la API
+   void registerRoutes();
 
    // Iniciar el servidor
    void listen(const char* host, int port);
 
 private:
-   httplib::Server server_;
+   httplib::SSLServer server_;
 };

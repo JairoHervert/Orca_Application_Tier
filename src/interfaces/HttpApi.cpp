@@ -1,38 +1,45 @@
 #include "HttpApi.hpp"
-// aquí podrías incluir lib de JSON (nlohmann/json, etc.)
+#include <iostream>
 
-HttpApi::HttpApi() {
-   // Si quisieras, puedes configurar middlewares, logs, etc.
+HttpApi::HttpApi(const char* certPath, const char* keyPath)
+   : server_(certPath, keyPath) {
+   // Constructor vacío o configuración inicial si necesitas
 }
 
-// void HttpApi::registerRoutes(CreateRepositoryUseCase &createRepoUseCase)
-// {
-//    server_.Post("/repo/create",
-//                 [&createRepoUseCase](const httplib::Request &req,
-//                                      httplib::Response &res)
-//                 {
-//                    // 1. Parsear JSON de req.body (omito detalles)
-//                    std::string name = /* leer de JSON */;
-//                    std::string owner = /* leer de JSON */;
+void HttpApi::registerRoutes() {
+   // Registra todas tus rutas aquí
+   server_.Get("/hi", [](const httplib::Request&, httplib::Response& res) {
+      res.set_content("Hello World https!", "text/plain");
+   });
 
-//                    try
-//                    {
-//                       // 2. Llamar caso de uso (aplicación)
-//                       Repository repo = createRepoUseCase.execute(name, owner);
+   server_.Post("/repo/create", [](const httplib::Request&, httplib::Response& res) {
+      res.set_content("Repository created!", "text/plain");
+   });
 
-//                       // 3. Construir respuesta JSON
-//                       res.status = 200;
-//                       res.set_content("{\"status\":\"ok\"}", "application/json");
-//                    }
-//                    catch (const std::exception &e)
-//                    {
-//                       res.status = 400;
-//                       res.set_content(
-//                           std::string("{\"status\":\"error\",\"message\":\"") + e.what() + "\"}", "application/json");
-//                    }
-//                 });
-// }
+   server_.Get("/repo/clone", [](const httplib::Request&, httplib::Response& res) {
+      res.set_content("Repository cloned!", "text/plain");
+   });
+   
+   // Aquí agregar las deamas rutas conforme sean necesarias
+   // server_.Post("/repo/create", [](const httplib::Request& req, httplib::Response& res) {
+   //     // ... lógica
+   // });
+}
 
-void HttpApi::listen(const char *host, int port) {
-   server_.listen(host, port);
+void HttpApi::listen(const char* host, int port) {
+   std::cout << "Intentando iniciar servidor HTTPS en https://" << host << ":" << port << std::endl;
+   
+   // Verificar que los archivos de certificado y clave existen
+
+
+   bool success = server_.listen(host, port);
+   
+   if (!success) {
+      std::cerr << "Error: No se pudo iniciar el servidor en " << host << ":" << port << std::endl;
+      std::cerr << "Posibles causas:" << std::endl;
+      std::cerr << "  - Puerto ya en uso" << std::endl;
+      std::cerr << "  - Certificados inválidos o no encontrados" << std::endl;
+      std::cerr << "  - Permisos insuficientes" << std::endl;
+      throw std::runtime_error("Failed to start server");
+   }
 }
