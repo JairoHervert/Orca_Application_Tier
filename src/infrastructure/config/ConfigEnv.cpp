@@ -34,9 +34,14 @@ ConfigEnv loadConfigFromEnv() {
    cfg.sslCertPath = getEnvOrThrow("SSL_CERT_PATH");
    cfg.sslKeyPath = getEnvOrThrow("SSL_KEY_PATH");
 
+   cfg.repositoriesRoot = getEnvOrThrow("REPOSITORIES_ROOT");
 
-   // Obtner otras variables de entorno si es necesario
-   // seran las de la base de datos proximamente
+   // Configuracion de la base de datos
+   cfg.dbHost = getEnvOrThrow("DB_HOST");
+   cfg.dbPort = getEnvIntOrThrow("DB_PORT");
+   cfg.dbName = getEnvOrThrow("DB_NAME");
+   cfg.dbUser = getEnvOrThrow("DB_USER");
+   cfg.dbPassword = getEnvOrThrow("DB_PASSWORD");
 
    return cfg;
 }

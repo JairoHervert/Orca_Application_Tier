@@ -1,0 +1,13 @@
+#pragma once
+#include <optional>
+#include <string>
+#include "../entities/Repository.entity.hpp"
+
+class IRepositoryStore {
+public:
+   virtual ~IRepositoryStore() = default;
+
+   virtual std::optional<Repository> findByName(const std::string &name) = 0;
+
+   virtual Repository create(const std::string &name, const std::string &owner) = 0;
+};

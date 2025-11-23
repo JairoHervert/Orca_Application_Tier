@@ -16,3 +16,6 @@ certs/
 *.out
 *.exe
 main
+
+#repositorios locales de pruebas
+repos_locales/

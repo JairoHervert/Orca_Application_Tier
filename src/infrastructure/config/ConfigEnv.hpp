@@ -11,11 +11,15 @@ struct ConfigEnv {
    std::string sslCertPath;
    std::string sslKeyPath;
 
-   // std::string dbHost;
-   // int dbPort;
-   // std::string dbUser;
-   // std::string dbPassword;
-   // std::string dbName;
+   // para las pruebas locales de guardado de repositorios
+   std::string repositoriesRoot;
+
+   // Configuracion de la base de datos
+   std::string dbHost;
+   int dbPort;
+   std::string dbName;
+   std::string dbUser;
+   std::string dbPassword;
 };
 
 // Función que lee desde variables de entorno

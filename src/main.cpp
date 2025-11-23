@@ -6,24 +6,45 @@
 #include "infrastructure/config/ConfigEnv.hpp"
 #include "interfaces/HttpApi.hpp"
 
+#include <soci/soci.h>
+#include <soci/mysql/soci-mysql.h>
+
+// Repositorios
+#include "infrastructure/database/DBUserRepository.hpp"
+#include "infrastructure/storage/FilesystemStorage.hpp"
+
+// Casos de uso
+#include "application/CreateRepositoryUseCase.hpp"
+
 
 int main() {
    try {
-      // Cargar variables de entorno desde .env
+      // 1. Cargar variables de entorno desde .env
       ConfigEnv configEnvs = loadConfigFromEnv();
 
+      // 2. Crear sesion SOCI (conexion a la BDD MySQL/MariaDB)
+      std::string connStr =
+         "db=" + configEnvs.dbName +
+         " user=" + configEnvs.dbUser +
+         " password=" + configEnvs.dbPassword +
+         " host=" + configEnvs.dbHost;
 
-      // 1. Infraestructura
-      //  MariaDBRepositoryStore repoStore{/*config de conexión*/};
+      soci::session sql(soci::mysql, connStr);
 
-      // 2. Casos de uso (aplicación)
-      //  CreateRepositoryUseCase createRepoUseCase{repoStore};
+      // 3. Infraestructura para repositorios
+      FilesystemStorage repoStore{configEnvs.repositoriesRoot};
+      DBUserRepository userRepo{sql};
 
-      // 2. Crear e inicializar API
+      // 4. Casos de uso (aplicacion)
+      CreateRepositoryUseCase createRepoUseCase{repoStore, userRepo};
+
+      // 5. Crear e inicializar API HTTP con SSL
       HttpApi http_api(configEnvs.sslCertPath.c_str(), configEnvs.sslKeyPath.c_str());
-      http_api.registerRoutes();
+
+      // 6. Registrar rutas e inyectar casos de uso donde se necesite
+      http_api.registerRoutes(createRepoUseCase);
       
-      // 3. Iniciar servidor
+      // 7. Iniciar servidor
       http_api.listen(configEnvs.serverHost.c_str(), configEnvs.serverPort);
 
    }
