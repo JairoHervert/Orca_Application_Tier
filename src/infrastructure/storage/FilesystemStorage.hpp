@@ -23,16 +23,14 @@ public:
           std::filesystem::is_directory(repoPath)) {
 
          Repository repo;
-         repo.id = 0;          // por ahora sin BD, id dummy
          repo.name = name;
-         repo.owner = "";      // aquí no sabemos el owner; es solo prueba
          return repo;
       }
 
       return std::nullopt;
    }
 
-   Repository create(const std::string &name, const std::string &owner) override {
+   Repository create(const std::string &name) override {
       std::filesystem::path repoPath = rootPath_ / name;
 
       if (std::filesystem::exists(repoPath)) {
@@ -43,7 +41,8 @@ public:
       std::filesystem::create_directories(repoPath);
 
       // Devolver entidad de dominio
-      Repository repo{/*id=*/0, name, owner};
+      Repository repo;
+      repo.name = name;
       return repo;
    }
 

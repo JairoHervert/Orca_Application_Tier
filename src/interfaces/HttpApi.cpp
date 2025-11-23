@@ -52,11 +52,11 @@ void HttpApi::registerRoutes(
             nlohmann::json responseBody;
             responseBody["status"] = "ok";
             responseBody["Repository_name"]   = newRepo.name;
-            responseBody["Repository_owner"]  = newRepo.owner;
+            // responseBody["Repository_owner"]  = newRepo.owner;
 
             res.status = 201; // Created
             res.set_content(responseBody.dump(), "application/json");
-            std::cout << "Repository created: " << newRepo.name << " owned by " << newRepo.owner << std::endl << std::endl;
+            std::cout << "Repository created: " << newRepo.name << " owned by " << std::endl << std::endl;
          }
          catch (const nlohmann::json::parse_error &e) {
             // Error al parsear JSON

@@ -10,6 +10,7 @@
 // Repositorios
 #include "infrastructure/database/DBUserRepository.hpp"
 #include "infrastructure/storage/FilesystemStorage.hpp"
+#include "infrastructure/database/DBProjectRepository.hpp"
 
 // Casos de uso
 #include "application/CreateRepositoryUseCase.hpp"
@@ -34,10 +35,11 @@ int main() {
       // 3. Infraestructura para repositorios
       FilesystemStorage repoStore{configEnvs.repositoriesRoot};
       DBUserRepository userRepo{sql};
+      DBProjectRepository projectRepo{sql};
       //DBCommunityRepository communityRepo{sql};
 
       // 4. Casos de uso (aplicacion)
-      CreateRepositoryUseCase createRepoUseCase{repoStore, userRepo};
+      CreateRepositoryUseCase createRepoUseCase{repoStore, userRepo, projectRepo};
       CreateUserUseCase createUserUseCase{userRepo};
       SavePublicKeyECDSAUseCase saveKPubUseCase{userRepo};
 

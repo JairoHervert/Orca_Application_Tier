@@ -4,6 +4,7 @@
 // Caso de uso para crear un repositorio
 #include "../domain/entities/Repository.entity.hpp"
 #include "../domain/repositories/IRepositoryStore.repository.hpp"
+#include "../domain/repositories/IProjectDB.repository.hpp"
 
 // Caso de uso para usuarios en ls base de datos
 #include "../domain/entities/User.entity.hpp"
@@ -13,9 +14,11 @@ class CreateRepositoryUseCase {
 public:
    explicit CreateRepositoryUseCase(
       IRepositoryStore &repositoryStore,     // inyección de dependencia FilesystemStorage
-      IUserRepository &userRepository)       // inyección de dependencia DBUserRepository
+      IUserRepository &userRepository,       // inyección de dependencia DBUserRepository
+      IProjectRepositoryDB &projectRepositoryDB)
       : repositoryStore_(repositoryStore),
-        userRepository_(userRepository) {}
+         userRepository_(userRepository),
+         projectRepositoryDB_(projectRepositoryDB) {}
 
    Repository execute(const std::string &repoName, const std::string &userEmail, const std::string &userPassword) {
 
@@ -38,10 +41,19 @@ public:
          throw std::runtime_error("Repository" + repoName + " already exists");
       }
 
-      return repositoryStore_.create(repoName, userEmail);
+      // crear la carpeta del repositorio en el sistema de archivos
+      Repository newRepo = repositoryStore_.create(repoName);
+
+      // registrar el repositorio en la base de datos
+      std::string description = "Repository for " + repoName;
+      return projectRepositoryDB_.create(newRepo.name, description, ownerOpt->idUser);
+
+
+
    }
 
 private:
    IRepositoryStore &repositoryStore_;
    IUserRepository  &userRepository_;
+   IProjectRepositoryDB &projectRepositoryDB_;
 };
