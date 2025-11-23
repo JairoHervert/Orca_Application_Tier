@@ -4,6 +4,8 @@
 
 // registrar los casos de uso necesarios
 #include "../application/CreateRepositoryUseCase.hpp"
+#include "../application/CreateUserUseCase.hpp"
+#include "../application/SavePublicKeyECDSAUseCase.hpp"
 
 class HttpApi {
 public:
@@ -11,7 +13,11 @@ public:
    HttpApi(const char* certPath, const char* keyPath);
 
    // Registrar rutas para la API
-   void registerRoutes(CreateRepositoryUseCase &createRepoUseCase);
+   void registerRoutes(
+      CreateRepositoryUseCase &createRepoUseCase,
+      CreateUserUseCase &createUserUseCase,
+      SavePublicKeyECDSAUseCase &saveKPubUseCase
+   );
 
    // Iniciar el servidor
    void listen(const char* host, int port);

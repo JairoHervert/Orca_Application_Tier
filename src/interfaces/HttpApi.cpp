@@ -7,7 +7,11 @@ HttpApi::HttpApi(const char* certPath, const char* keyPath)
    // Constructor vacío o configuración inicial si necesitas
 }
 
-void HttpApi::registerRoutes(CreateRepositoryUseCase& createRepoUseCase) {
+void HttpApi::registerRoutes(
+   CreateRepositoryUseCase& createRepoUseCase,
+   CreateUserUseCase& createUserUseCase,
+   SavePublicKeyECDSAUseCase& saveKPubUseCase
+) {
 
    /***********************************   INICIAR UN NUEVO REPOSITORIO  ***********************************/
    server_.Post("/repo/init",
@@ -23,8 +27,8 @@ void HttpApi::registerRoutes(CreateRepositoryUseCase& createRepoUseCase) {
             // 2. Parsear JSON del body
             nlohmann::json body = nlohmann::json::parse(req.body);
 
-            // 3. Extraer campos "name" y "owner"
-            if (!body.contains("repo_name") || !body.contains("owner_email")) {
+            // 3. Extraer campos "repo_name" y "owner_email" y "owner_password"
+            if (!body.contains("repo_name") || !body.contains("owner_email") || !body.contains("owner_password")) {
                res.status = 400;
                res.set_content("Missing 'name' or 'email' field", "text/plain");
                return;
@@ -32,16 +36,17 @@ void HttpApi::registerRoutes(CreateRepositoryUseCase& createRepoUseCase) {
 
             std::string repoName  = body["repo_name"].get<std::string>();
             std::string userEmail = body["owner_email"].get<std::string>();
+            std::string userPassword = body["owner_password"].get<std::string>();
 
             // (opcional) Validaciones simples
-            if (repoName.empty() || userEmail.empty()) {
+            if (repoName.empty() || userEmail.empty() || userPassword.empty()) {
                res.status = 400;
-               res.set_content("Fields 'repo_name' and 'owner_email' must not be empty", "text/plain");
+               res.set_content("Fields 'repo_name', 'owner_email' and 'owner_password' cannot be empty", "text/plain");
                return;
             }
 
             // 4. Ejecutar caso de uso
-            Repository newRepo = createRepoUseCase.execute(repoName, userEmail);
+            Repository newRepo = createRepoUseCase.execute(repoName, userEmail, userPassword);
 
             // 5. Construir respuesta JSON
             nlohmann::json responseBody;
@@ -74,6 +79,141 @@ void HttpApi::registerRoutes(CreateRepositoryUseCase& createRepoUseCase) {
    });
 
 
+   /***********************************   DAR DE ALTA NUEVO USER  ***********************************/
+   server_.Post("/user/create",
+      [&createUserUseCase](const httplib::Request& req, httplib::Response& res) {
+         try {
+            // 1. Verificar que haya body
+            if (req.body.empty()) {
+               res.status = 400;
+               res.set_content("Request body is empty", "text/plain");
+               return;
+            }
+
+            // 2. Parsear JSON del body
+            nlohmann::json body = nlohmann::json::parse(req.body);
+
+            // 3. Extraer campos "name", "email" y "password"
+            if (!body.contains("name") || !body.contains("email") || !body.contains("password")) {
+               res.status = 400;
+               res.set_content("Missing 'name', 'email' or 'password' field", "text/plain");
+               return;
+            }
+
+            std::string name     = body["name"].get<std::string>();
+            std::string email    = body["email"].get<std::string>();
+            std::string password = body["password"].get<std::string>();
+
+            // (opcional) Validaciones simples
+            if (name.empty() || email.empty() || password.empty()) {
+               res.status = 400;
+               res.set_content("Fields 'name', 'email' and 'password' cannot be empty", "text/plain");
+               return;
+            }
+
+            // 4. Ejecutar caso de uso
+            bool created = createUserUseCase.execute(name, email, password);
+            
+            nlohmann::json responseBody;
+
+            if (!created) {
+               res.status = 500;
+               responseBody["status"] = "error";
+               responseBody["message"] = "User could not be created";
+               res.set_content(responseBody.dump(), "application/json");
+               std::cout << "Failed to create user: " << name << " with email " << email << std::endl << std::endl;
+               return;
+            }
+
+            // 5. Construir respuesta JSON
+            responseBody["status"] = "ok";
+            responseBody["user_name"]  = name;
+            responseBody["user_email"] = email;
+
+            res.status = 201; // Created
+            res.set_content(responseBody.dump(), "application/json");
+            std::cout << "User created: " << name << " with email " << email << std::endl << std::endl;
+         }
+         catch (const nlohmann::json::parse_error &e) {
+            // Error al parsear JSON
+            res.status = 400;
+            std::cout << "JSON parse error: " << e.what() << std::endl;
+            res.set_content(std::string("Invalid JSON: ") + e.what(), "text/plain");
+         }
+         catch (const std::exception &e) {
+            // Error de negocio u otro tipo
+            res.status = 500;
+            std::cout << "Error creating user: " << e.what() << std::endl << std::endl;
+            res.set_content(std::string("Internal error: ") + e.what(), "text/plain");
+         }
+         catch (...) {
+            // Capturar cualquier otro tipo de excepción
+            res.status = 500;
+            std::cout << "Unknown error occurred while creating user." << std::endl << std::endl;
+            res.set_content("Internal error: Unknown error occurred", "text/plain");
+         }
+      }
+   );
+
+
+   /***********************************   INSERTAR K_PUB ECDSA A UN USUARIO  ***********************************/
+   server_.Post("/user/add_kpub_ecdsa",
+      [&saveKPubUseCase](const httplib::Request& req, httplib::Response& res) {
+         try {
+            // 1. Verificar que haya body
+            if (req.body.empty()) {
+               res.status = 400;
+               res.set_content("Request body is empty", "text/plain");
+               return;
+            }
+
+            // 2. Parsear JSON del body
+            nlohmann::json body = nlohmann::json::parse(req.body);
+
+            // 3. Extraer campos "email", "password" y "public_key"
+            if (!body.contains("email") || !body.contains("password") || !body.contains("kpub_ecdsa")) {
+               res.status = 400;
+               res.set_content("Missing 'email', 'password' or 'public_key' field", "text/plain");
+               return;
+            }
+
+            std::string email    = body["email"].get<std::string>();
+            std::string password = body["password"].get<std::string>();
+            std::string publicKey = body["kpub_ecdsa"].get<std::string>();
+
+            // (opcional) Validaciones simples
+            if (email.empty() || password.empty() || publicKey.empty()) {
+               res.status = 400;
+               res.set_content("Fields 'name', 'email' and 'password' cannot be empty", "text/plain");
+               return;
+            }
+
+            // 4. Ejecutar caso de uso
+            bool keySaved = saveKPubUseCase.execute(email, publicKey, password);
+
+            // 5. Construir respuesta JSON
+            nlohmann::json responseBody;
+            responseBody["status"] = "ok";
+            responseBody["user_email"] = email;
+            responseBody["key_saved"]  = keySaved;
+
+            res.status = 201; // Created
+            res.set_content(responseBody.dump(), "application/json");
+            std::cout << "Public key saved for user with email " << email << std::endl << std::endl;
+         }
+         catch (const nlohmann::json::parse_error &e) {
+            // Error al parsear JSON
+            res.status = 400;
+            res.set_content(std::string("Invalid JSON: ") + e.what(), "text/plain");
+         }
+         catch (const std::exception &e) {
+            // Error de negocio u otro tipo
+            res.status = 500;
+            std::cout << "Error saving public key: " << e.what() << std::endl << std::endl;
+            res.set_content(std::string("Internal error: ") + e.what(), "text/plain");
+         }
+      }
+   );
 
 }
 

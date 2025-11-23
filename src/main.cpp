@@ -1,6 +1,4 @@
-// main.cpp
-// #include "infrastructure/MariaDBRepositoryStore.hpp"
-// #include "application/CreateRepositoryUseCase.hpp"
+// g++ src/main.cpp src/infrastructure/config/ConfigEnv.cpp src/interfaces/HttpApi.cpp -I../third_party -I/usr/include/mysql -o main -lssl -lcrypto -lsoci_core -lsoci_mysql -lmariadb
 
 #include <iostream>
 #include "infrastructure/config/ConfigEnv.hpp"
@@ -15,6 +13,8 @@
 
 // Casos de uso
 #include "application/CreateRepositoryUseCase.hpp"
+#include "application/CreateUserUseCase.hpp"
+#include "application/SavePublicKeyECDSAUseCase.hpp"
 
 
 int main() {
@@ -34,15 +34,22 @@ int main() {
       // 3. Infraestructura para repositorios
       FilesystemStorage repoStore{configEnvs.repositoriesRoot};
       DBUserRepository userRepo{sql};
+      //DBCommunityRepository communityRepo{sql};
 
       // 4. Casos de uso (aplicacion)
       CreateRepositoryUseCase createRepoUseCase{repoStore, userRepo};
+      CreateUserUseCase createUserUseCase{userRepo};
+      SavePublicKeyECDSAUseCase saveKPubUseCase{userRepo};
 
       // 5. Crear e inicializar API HTTP con SSL
       HttpApi http_api(configEnvs.sslCertPath.c_str(), configEnvs.sslKeyPath.c_str());
 
       // 6. Registrar rutas e inyectar casos de uso donde se necesite
-      http_api.registerRoutes(createRepoUseCase);
+      http_api.registerRoutes(
+         createRepoUseCase,
+         createUserUseCase,
+         saveKPubUseCase
+      );
       
       // 7. Iniciar servidor
       http_api.listen(configEnvs.serverHost.c_str(), configEnvs.serverPort);
