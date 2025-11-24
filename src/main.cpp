@@ -36,7 +36,6 @@ int main() {
       FilesystemStorage repoStore{configEnvs.repositoriesRoot};
       DBUserRepository userRepo{sql};
       DBProjectRepository projectRepo{sql};
-      //DBCommunityRepository communityRepo{sql};
 
       // 4. Casos de uso (aplicacion)
       CreateRepositoryUseCase createRepoUseCase{repoStore, userRepo, projectRepo};

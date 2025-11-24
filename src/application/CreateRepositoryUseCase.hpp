@@ -46,10 +46,9 @@ public:
 
       // registrar el repositorio en la base de datos
       std::string description = "Repository for " + repoName;
+
+      
       return projectRepositoryDB_.create(newRepo.name, description, ownerOpt->idUser);
-
-
-
    }
 
 private:
