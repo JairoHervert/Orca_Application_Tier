@@ -6,6 +6,9 @@
 #include "../application/CreateRepositoryUseCase.hpp"
 #include "../application/CreateUserUseCase.hpp"
 #include "../application/SavePublicKeyECDSAUseCase.hpp"
+#include "../application/ChangeLevelUserUseCase.hpp"
+#include "../application/VerifyUserUseCase.hpp"
+#include "../application/ChangeUserStatusUseCase.hpp"
 
 class HttpApi {
 public:
@@ -16,7 +19,10 @@ public:
    void registerRoutes(
       CreateRepositoryUseCase &createRepoUseCase,
       CreateUserUseCase &createUserUseCase,
-      SavePublicKeyECDSAUseCase &saveKPubUseCase
+      SavePublicKeyECDSAUseCase &saveKPubUseCase,
+      ChangeLevelUserUseCase &changeLevelUserUseCase,
+      VerifyUserUseCase &verifyUserUseCase,
+      ChangeStatusUserUseCase &changeUserStatusUseCase
    );
 
    // Iniciar el servidor

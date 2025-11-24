@@ -10,7 +10,10 @@ HttpApi::HttpApi(const char* certPath, const char* keyPath)
 void HttpApi::registerRoutes(
    CreateRepositoryUseCase& createRepoUseCase,
    CreateUserUseCase& createUserUseCase,
-   SavePublicKeyECDSAUseCase& saveKPubUseCase
+   SavePublicKeyECDSAUseCase& saveKPubUseCase,
+   ChangeLevelUserUseCase& changeLevelUserUseCase,
+   VerifyUserUseCase& verifyUserUseCase,
+   ChangeStatusUserUseCase& changeUserStatusUseCase
 ) {
 
    /***********************************   INICIAR UN NUEVO REPOSITORIO  ***********************************/
@@ -56,7 +59,7 @@ void HttpApi::registerRoutes(
 
             res.status = 201; // Created
             res.set_content(responseBody.dump(), "application/json");
-            std::cout << "Repository created: " << newRepo.name << " owned by " << std::endl << std::endl;
+            std::cout << "Repository created: " << newRepo.name << std::endl << std::endl;
          }
          catch (const nlohmann::json::parse_error &e) {
             // Error al parsear JSON
@@ -210,6 +213,219 @@ void HttpApi::registerRoutes(
             // Error de negocio u otro tipo
             res.status = 500;
             std::cout << "Error saving public key: " << e.what() << std::endl << std::endl;
+            res.set_content(std::string("Internal error: ") + e.what(), "text/plain");
+         }
+      }
+   );
+
+
+
+   /***********************************   CAMBIAR EL ROL A UN USUARIO  ***********************************/
+   server_.Post("/user/change_level",
+      [&changeLevelUserUseCase](const httplib::Request& req, httplib::Response& res) {
+         try {
+            // 1. Verificar que haya body
+            if (req.body.empty()) {
+               res.status = 400;
+               res.set_content("Request body is empty", "text/plain");
+               return;
+            }
+
+            // 2. Parsear JSON del body
+            nlohmann::json body = nlohmann::json::parse(req.body);
+
+            // 3. Extraer campos necesarios
+            if (!body.contains("approver_email") || !body.contains("approver_password") || !body.contains("target_user_email") || !body.contains("new_role")) {
+               res.status = 400;
+               res.set_content("Missing required fields", "text/plain");
+               return;
+            }
+
+            std::string approverEmail    = body["approver_email"].get<std::string>();
+            std::string approverPassword = body["approver_password"].get<std::string>();
+            std::string targetUserEmail  = body["target_user_email"].get<std::string>();
+            int newRole                  = body["new_role"].get<int>();
+
+            // (opcional) Validaciones simples
+            if (approverEmail.empty() || approverPassword.empty() ||
+                targetUserEmail.empty()) {
+               res.status = 400;
+               res.set_content("Email and password fields cannot be empty", "text/plain");
+               return;
+            }
+
+            // 4. Ejecutar caso de uso
+            bool levelChanged = changeLevelUserUseCase.execute(approverEmail, approverPassword, targetUserEmail, newRole);
+            nlohmann::json responseBody;
+
+            // 5. si no se pudo cambiar el nivel
+            if (!levelChanged) {
+               res.status = 500;
+               responseBody["status"] = "error";
+               responseBody["message"] = "User level could not be changed";
+               res.set_content(responseBody.dump(), "application/json");
+               std::cout << "Failed to change level for user with email " << targetUserEmail << std::endl << std::endl;
+               return;
+            }
+
+            // 6. Construir respuesta JSON si todo salió bien
+            responseBody["status"] = "ok";
+            responseBody["target_user_email"] = targetUserEmail;
+            responseBody["new_role"] = newRole;
+            res.status = 200; // OK
+            res.set_content(responseBody.dump(), "application/json");
+            std::cout << "User level changed for " << targetUserEmail << " to role " << newRole << std::endl << std::endl;
+
+         }
+         catch (const nlohmann::json::parse_error &e) {
+            // Error al parsear JSON
+            res.status = 400;
+            res.set_content(std::string("Invalid JSON: ") + e.what(), "text/plain");
+         }
+         catch (const std::exception &e) {
+            // Error de negocio u otro tipo
+            res.status = 500;
+            std::cout << "Error changing user level: " << e.what() << std::endl << std::endl;
+            res.set_content(std::string("Internal error: ") + e.what(), "text/plain");
+         }
+      }
+   );
+
+
+
+   /***********************************   VERIFICAR A UN USUARIO NUEVO  ***********************************/
+   server_.Post("/user/verify_email",
+      [&verifyUserUseCase](const httplib::Request& req, httplib::Response& res) {
+         try {
+            // 1. Verificar que haya body
+            if (req.body.empty()) {
+               res.status = 400;
+               res.set_content("Request body is empty", "text/plain");
+               return;
+            }
+            
+            // 2. Parsear JSON del body
+            nlohmann::json body = nlohmann::json::parse(req.body);
+
+            // 3. Extraer campos necesarios
+            if (!body.contains("approver_email") || !body.contains("approver_password") || !body.contains("target_user_email")) {
+               res.status = 400;
+               res.set_content("Missing required fields", "text/plain");
+               return;
+            }
+
+            std::string approverEmail    = body["approver_email"].get<std::string>();
+            std::string approverPassword = body["approver_password"].get<std::string>();
+            std::string targetUserEmail  = body["target_user_email"].get<std::string>();
+
+            // (opcional) Validaciones simples
+            if (approverEmail.empty() || approverPassword.empty() || targetUserEmail.empty()) {
+               res.status = 400;
+               res.set_content("Email and password fields cannot be empty", "text/plain");
+               return;
+            }
+
+            // 4. Ejecutar caso de uso
+            bool statusChanged = verifyUserUseCase.execute(approverEmail, approverPassword, targetUserEmail);
+            nlohmann::json responseBody;
+
+            // 5. si no se pudo verificar el usuario
+            if (!statusChanged) {
+               res.status = 500;
+               responseBody["status"] = "error";
+               responseBody["message"] = "User could not be verified";
+               res.set_content(responseBody.dump(), "application/json");
+               std::cout << "Failed to change verify for user with email " << targetUserEmail << std::endl << std::endl;
+               return;
+            }
+
+            // 6. Construir respuesta JSON si todo salió bien
+            responseBody["status"] = "ok";
+            responseBody["target_user_email"] = targetUserEmail;
+            res.status = 200; // OK
+            res.set_content(responseBody.dump(), "application/json");
+            std::cout << "Verified user email for " << targetUserEmail << std::endl << std::endl;
+         }
+         catch (const nlohmann::json::parse_error &e) {
+            // Error al parsear JSON
+            res.status = 400;
+            res.set_content(std::string("Invalid JSON: ") + e.what(), "text/plain");
+         }
+         catch (const std::exception &e) {
+            // Error de negocio u otro tipo
+            res.status = 500;
+            std::cout << "Error changing user status: " << e.what() << std::endl << std::endl;
+            res.set_content(std::string("Internal error: ") + e.what(), "text/plain");
+         }
+      }
+   );
+
+
+
+   /***********************************   CAMBIO DE STATUS A UN USUARIO  ***********************************/
+   server_.Post("/user/change_status",
+      [&changeUserStatusUseCase](const httplib::Request& req, httplib::Response& res) {
+         try {
+            // 1. Verificar que haya body
+            if (req.body.empty()) {
+               res.status = 400;
+               res.set_content("Request body is empty", "text/plain");
+               return;
+            }
+
+            // 2. Parsear JSON del body
+            nlohmann::json body = nlohmann::json::parse(req.body);
+
+            // 3. Extraer campos necesarios
+            if (!body.contains("approver_email") || !body.contains("approver_password") || !body.contains("target_user_email") || !body.contains("new_status")) {
+               res.status = 400;
+               res.set_content("Missing required fields", "text/plain");
+               return;
+            }
+
+            std::string approverEmail    = body["approver_email"].get<std::string>();
+            std::string approverPassword = body["approver_password"].get<std::string>();
+            std::string targetUserEmail  = body["target_user_email"].get<std::string>();
+            int newStatus                = body["new_status"].get<int>();
+
+            // (opcional) Validaciones simples
+            if (approverEmail.empty() || approverPassword.empty() || targetUserEmail.empty()) {
+               res.status = 400;
+               res.set_content("Email and password fields cannot be empty", "text/plain");
+               return;
+            }
+
+            // 4. Ejecutar caso de uso
+            bool statusChanged = changeUserStatusUseCase.execute(approverEmail, approverPassword, targetUserEmail, newStatus);
+            nlohmann::json responseBody;
+
+            // 5. si no se pudo cambiar el status
+            if (!statusChanged) {
+               res.status = 500;
+               responseBody["status"] = "error";
+               responseBody["message"] = "User status could not be changed";
+               res.set_content(responseBody.dump(), "application/json");
+               std::cout << "Failed to change status for user with email " << targetUserEmail << std::endl << std::endl;
+               return;
+            }
+
+            // 6. Construir respuesta JSON si todo salió bien
+            responseBody["status"] = "ok";
+            responseBody["target_user_email"] = targetUserEmail;
+            responseBody["new_status"] = newStatus;
+            res.status = 200; // OK
+            res.set_content(responseBody.dump(), "application/json");
+            std::cout << "User status changed for " << targetUserEmail << " to status " << newStatus << std::endl << std::endl;
+         }
+         catch (const nlohmann::json::parse_error &e) {
+            // Error al parsear JSON
+            res.status = 400;
+            res.set_content(std::string("Invalid JSON: ") + e.what(), "text/plain");
+         }
+         catch (const std::exception &e) {
+            // Error de negocio u otro tipo
+            res.status = 500;
+            std::cout << "Error changing user status: " << e.what() << std::endl << std::endl;
             res.set_content(std::string("Internal error: ") + e.what(), "text/plain");
          }
       }

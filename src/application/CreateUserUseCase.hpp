@@ -3,7 +3,7 @@
 #include <stdexcept>
 
 // Caso de uso para usuarios en ls base de datos
-#include "../domain/entities/User.entity.hpp"
+// #include "../domain/entities/User.entity.hpp"
 #include "../domain/repositories/IUser.repository.hpp"
 
 // Helper para validar formato de email

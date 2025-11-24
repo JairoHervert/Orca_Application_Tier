@@ -3,7 +3,7 @@
 #include <stdexcept>
 
 // Caso de uso para usuarios en ls base de datos
-#include "../domain/entities/User.entity.hpp"
+// #include "../domain/entities/User.entity.hpp"
 #include "../domain/repositories/IUser.repository.hpp"
 
 class SavePublicKeyECDSAUseCase {
@@ -17,6 +17,14 @@ public:
       auto existing = userRepository_.findByEmail(email);
       if (!existing.has_value())
          throw std::runtime_error("User with email " + email + " does not exist");
+
+      // Validar que el status del usuario sea activo (esta trabajando actualmente)
+      if (!userRepository_.isStatusActive(email))
+         throw std::runtime_error("User: " + email + " is not active");
+
+      // Verificar que el usuario esté verificado
+      if (!userRepository_.isVerifiedUser(email))
+         throw std::runtime_error("User with email " + email + " is not verified");
 
       // Verificar que el password sea correcto
       if (!userRepository_.isValidPassword(email, password))

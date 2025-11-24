@@ -2,12 +2,12 @@
 #include <string>
 #include <stdexcept>
 // Caso de uso para crear un repositorio
-#include "../domain/entities/Repository.entity.hpp"
+// #include "../domain/entities/Repository.entity.hpp"
 #include "../domain/repositories/IRepositoryStore.repository.hpp"
 #include "../domain/repositories/IProjectDB.repository.hpp"
 
 // Caso de uso para usuarios en ls base de datos
-#include "../domain/entities/User.entity.hpp"
+// #include "../domain/entities/User.entity.hpp"
 #include "../domain/repositories/IUser.repository.hpp"
 
 class CreateRepositoryUseCase {
@@ -27,12 +27,20 @@ public:
       if (!ownerOpt.has_value()) 
          throw std::runtime_error("User: " + userEmail + " not found");
 
-      // 1.1 Validar que el password sea correcto
+      // 1.1. Validar que el status del usuario sea activo (esta trabajando actualmente)
+      if (!userRepository_.isStatusActive(userEmail))
+         throw std::runtime_error("User: " + userEmail + " is not active");
+
+      // 1.2. Validar que el usuario esté verificado
+      if (!userRepository_.isVerifiedUser(userEmail))
+         throw std::runtime_error("User with email " + userEmail + " is not verified");
+
+      // 1.3. Validar que el password sea correcto
       if (!userRepository_.isValidPassword(userEmail, userPassword))
          throw std::runtime_error("Invalid password for user: " + userEmail);
 
-      // 1.2. Validar que el usuario tenga permisos para crear repositorios
-      if (!userRepository_.isLeaderUser(userEmail))
+      // 1.4. Validar que el usuario tenga permisos para crear repositorios (Leader o Senior)
+      if (!userRepository_.isLeaderUser(userEmail) && !userRepository_.isSeniorUser(userEmail))
          throw std::runtime_error(userEmail + " is not authorized to create a repository");
  
       // Regla de negocio: no permitir duplicados
@@ -46,8 +54,6 @@ public:
 
       // registrar el repositorio en la base de datos
       std::string description = "Repository for " + repoName;
-
-      
       return projectRepositoryDB_.create(newRepo.name, description, ownerOpt->idUser);
    }
 

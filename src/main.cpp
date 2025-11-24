@@ -16,6 +16,9 @@
 #include "application/CreateRepositoryUseCase.hpp"
 #include "application/CreateUserUseCase.hpp"
 #include "application/SavePublicKeyECDSAUseCase.hpp"
+#include "application/ChangeLevelUserUseCase.hpp"
+#include "application/VerifyUserUseCase.hpp"
+#include "application/ChangeUserStatusUseCase.hpp"
 
 
 int main() {
@@ -41,6 +44,9 @@ int main() {
       CreateRepositoryUseCase createRepoUseCase{repoStore, userRepo, projectRepo};
       CreateUserUseCase createUserUseCase{userRepo};
       SavePublicKeyECDSAUseCase saveKPubUseCase{userRepo};
+      ChangeLevelUserUseCase changeLevelUserUseCase{userRepo};
+      VerifyUserUseCase verifyUserUseCase{userRepo};
+      ChangeStatusUserUseCase changeUserStatusUseCase{userRepo};
 
       // 5. Crear e inicializar API HTTP con SSL
       HttpApi http_api(configEnvs.sslCertPath.c_str(), configEnvs.sslKeyPath.c_str());
@@ -49,7 +55,10 @@ int main() {
       http_api.registerRoutes(
          createRepoUseCase,
          createUserUseCase,
-         saveKPubUseCase
+         saveKPubUseCase,
+         changeLevelUserUseCase,
+         verifyUserUseCase,
+         changeUserStatusUseCase
       );
       
       // 7. Iniciar servidor

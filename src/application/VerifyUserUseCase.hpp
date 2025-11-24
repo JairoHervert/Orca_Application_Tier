@@ -5,18 +5,13 @@
 // repositorios de operaciones con usuarios en la base de datos
 #include "../domain/repositories/IUser.repository.hpp"
 
-class ChangeLevelUserUseCase {
+class VerifyUserUseCase {
 public:
-   explicit ChangeLevelUserUseCase(IUserRepository &userRepository)
+   explicit VerifyUserUseCase(IUserRepository &userRepository)
       : userRepository_(userRepository) {}
 
-   bool execute(const std::string &approverEmail, const std::string &approverPassword, const std::string &targetUserEmail, int newRole) {
-      
-      // Verificar que el nuevo rol sea válido
-      if (newRole < 1 || newRole > 3)
-         throw std::runtime_error("Invalid role value: " + std::to_string(newRole) + ". Must be 1 (Developer), 2 (Leader), or 3 (Senior)");
-      
-      
+   bool execute(const std::string &approverEmail, const std::string &approverPassword, const std::string &targetUserEmail) {
+
       // Verificar que el usuario aprobador exista
       if (!userRepository_.findByEmail(approverEmail).has_value())
          throw std::runtime_error("Approver user with email " + approverEmail + " does not exist");
@@ -35,7 +30,7 @@ public:
 
       // Verificar que el usuario aprobador tenga permisos (Senior)
       if (!userRepository_.isSeniorUser(approverEmail))
-         throw std::runtime_error("User " + approverEmail + " is not authorized to change user levels");
+         throw std::runtime_error("User " + approverEmail + " is not authorized to verify users");
 
 
       // Verificar que el usuario objetivo exista
@@ -46,13 +41,8 @@ public:
       if (!userRepository_.isStatusActive(targetUserEmail))
          throw std::runtime_error("User: " + targetUserEmail + " is not active");
 
-      // Verificar que el usuario objetivo este verificado
-      if (!userRepository_.isVerifiedUser(targetUserEmail))
-         throw std::runtime_error("Target user with email " + targetUserEmail + " is not verified");
-
-
-      // Cambiar el nivel del usuario objetivo
-      return userRepository_.changeLevelUser(targetUserEmail, newRole);
+      // Cambiar el status del usuario objetivo
+      return userRepository_.verifyUserEmail(targetUserEmail);
    }
 private:
    IUserRepository  &userRepository_;

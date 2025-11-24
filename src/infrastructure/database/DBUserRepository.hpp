@@ -98,6 +98,16 @@ public:
       return count > 0;
    }
 
+   bool isVerifiedUser(const std::string &email) {
+      auto userOpt = findByEmail(email);
+      return userOpt.has_value() && userOpt->verify == 1;
+   }
+
+   bool isStatusActive(const std::string &email) {
+      auto userOpt = findByEmail(email);
+      return userOpt.has_value() && userOpt->status == 1;
+   }
+
    bool isDeveloperUser(const std::string &email) override {
       auto userOpt = findByEmail(email);
       return userOpt.has_value() && userOpt->role == 1;
@@ -128,6 +138,59 @@ public:
       soci::indicator ind = row.get_indicator(0);  // columna 0: kpubecdsa
 
       return ind == soci::i_null;
+   }
+
+
+   // Para cambiar el rol de un usuario a entre lider, senior o developer
+   bool changeLevelUser(const std::string &email, int newRole) {
+      try {
+         soci::statement st = (sql_.prepare <<
+            "UPDATE users "
+            "SET role = :newRole "
+            "WHERE email = :email",
+            soci::use(newRole, "newRole"),
+            soci::use(email, "email")
+         );
+         st.execute(true);
+         std::size_t affected = st.get_affected_rows();
+         return affected == 1;
+      } catch (const std::exception &e) {
+         return false;
+      }
+   }
+
+   // Para verificar el email de un usuario nuevo
+   bool verifyUserEmail(const std::string &email) {
+      try {
+         soci::statement st = (sql_.prepare <<
+            "UPDATE users "
+            "SET verify = 1 "
+            "WHERE email = :email",
+            soci::use(email, "email")
+         );
+         st.execute(true);
+         std::size_t affected = st.get_affected_rows();
+         return affected == 1;
+      } catch (const std::exception &e) {
+         return false;
+      }
+   }
+
+   bool changeActiveStatus(const std::string &email, int newStatus) {
+      try {
+         soci::statement st = (sql_.prepare <<
+            "UPDATE users "
+            "SET status = :newStatus "
+            "WHERE email = :email",
+            soci::use(newStatus, "newStatus"),
+            soci::use(email, "email")
+         );
+         st.execute(true);
+         std::size_t affected = st.get_affected_rows();
+         return affected == 1;
+      } catch (const std::exception &e) {
+         return false;
+      }
    }
 
 private:

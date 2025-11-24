@@ -5,18 +5,17 @@
 // repositorios de operaciones con usuarios en la base de datos
 #include "../domain/repositories/IUser.repository.hpp"
 
-class ChangeLevelUserUseCase {
+class ChangeStatusUserUseCase {
 public:
-   explicit ChangeLevelUserUseCase(IUserRepository &userRepository)
+   explicit ChangeStatusUserUseCase(IUserRepository &userRepository)
       : userRepository_(userRepository) {}
 
-   bool execute(const std::string &approverEmail, const std::string &approverPassword, const std::string &targetUserEmail, int newRole) {
-      
-      // Verificar que el nuevo rol sea válido
-      if (newRole < 1 || newRole > 3)
-         throw std::runtime_error("Invalid role value: " + std::to_string(newRole) + ". Must be 1 (Developer), 2 (Leader), or 3 (Senior)");
-      
-      
+   bool execute(const std::string &approverEmail, const std::string &approverPassword, const std::string &targetUserEmail, int newStatus) {
+
+      // Verificar que el nuevo status sea valido (0: no trabaja actualmente, 1: trabaja actualmente)
+      if (newStatus < 0 || newStatus > 1)
+         throw std::runtime_error("Invalid status value: " + std::to_string(newStatus) + ". Must be 0 (Inactive - working) or 1 (Active - not working)");
+
       // Verificar que el usuario aprobador exista
       if (!userRepository_.findByEmail(approverEmail).has_value())
          throw std::runtime_error("Approver user with email " + approverEmail + " does not exist");
@@ -35,24 +34,16 @@ public:
 
       // Verificar que el usuario aprobador tenga permisos (Senior)
       if (!userRepository_.isSeniorUser(approverEmail))
-         throw std::runtime_error("User " + approverEmail + " is not authorized to change user levels");
+         throw std::runtime_error("User " + approverEmail + " is not authorized to change user status"); 
+
 
 
       // Verificar que el usuario objetivo exista
       if (!userRepository_.findByEmail(targetUserEmail).has_value())
          throw std::runtime_error("Target user with email " + targetUserEmail + " does not exist");
 
-      // Verificar que el status del usuario objetivo sea activo (esta trabajando actualmente)
-      if (!userRepository_.isStatusActive(targetUserEmail))
-         throw std::runtime_error("User: " + targetUserEmail + " is not active");
-
-      // Verificar que el usuario objetivo este verificado
-      if (!userRepository_.isVerifiedUser(targetUserEmail))
-         throw std::runtime_error("Target user with email " + targetUserEmail + " is not verified");
-
-
-      // Cambiar el nivel del usuario objetivo
-      return userRepository_.changeLevelUser(targetUserEmail, newRole);
+      // Cambiar el status del usuario objetivo
+      return userRepository_.changeActiveStatus(targetUserEmail, newStatus);
    }
 private:
    IUserRepository  &userRepository_;
