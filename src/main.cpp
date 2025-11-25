@@ -19,6 +19,7 @@
 #include "application/ChangeLevelUserUseCase.hpp"
 #include "application/VerifyUserUseCase.hpp"
 #include "application/ChangeUserStatusUseCase.hpp"
+#include "application/SavePublicKeyRSAUseCase.hpp"
 
 
 int main() {
@@ -47,6 +48,7 @@ int main() {
       ChangeLevelUserUseCase changeLevelUserUseCase{userRepo};
       VerifyUserUseCase verifyUserUseCase{userRepo};
       ChangeStatusUserUseCase changeUserStatusUseCase{userRepo};
+      SavePublicKeyRSAUseCase saveKPubRSAUseCase{userRepo};
 
       // 5. Crear e inicializar API HTTP con SSL
       HttpApi http_api(configEnvs.sslCertPath.c_str(), configEnvs.sslKeyPath.c_str());
@@ -58,7 +60,8 @@ int main() {
          saveKPubUseCase,
          changeLevelUserUseCase,
          verifyUserUseCase,
-         changeUserStatusUseCase
+         changeUserStatusUseCase,
+         saveKPubRSAUseCase
       );
       
       // 7. Iniciar servidor

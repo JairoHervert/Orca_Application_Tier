@@ -9,7 +9,9 @@ public:
 
    virtual bool create(const std::string &name, const std::string &email, const std::string &password) = 0;
 
-   virtual bool addPublicKeyToUser(const std::string &email, const std::string &publicKey) = 0;
+   virtual bool addPublicKeyECDSA(const std::string &email, const std::string &publicKey) = 0;
+
+   virtual bool addPublicKeyRSA(const std::string &email, const std::string &publicKey) = 0;
 
    virtual std::optional<User> findByEmail(const std::string &email) = 0;
 
@@ -26,6 +28,8 @@ public:
    virtual bool isSeniorUser(const std::string &email) = 0;
 
    virtual bool notECDSAKeyAdded(const std::string &email) = 0;
+
+   virtual bool notRSAKeyAdded(const std::string &email) = 0;
 
    virtual bool changeLevelUser(const std::string &email, int newRole) = 0;
 

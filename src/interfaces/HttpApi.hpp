@@ -9,6 +9,7 @@
 #include "../application/ChangeLevelUserUseCase.hpp"
 #include "../application/VerifyUserUseCase.hpp"
 #include "../application/ChangeUserStatusUseCase.hpp"
+#include "../application/SavePublicKeyRSAUseCase.hpp"
 
 class HttpApi {
 public:
@@ -22,7 +23,8 @@ public:
       SavePublicKeyECDSAUseCase &saveKPubUseCase,
       ChangeLevelUserUseCase &changeLevelUserUseCase,
       VerifyUserUseCase &verifyUserUseCase,
-      ChangeStatusUserUseCase &changeUserStatusUseCase
+      ChangeStatusUserUseCase &changeUserStatusUseCase,
+      SavePublicKeyRSAUseCase &saveKPubRSAUseCase
    );
 
    // Iniciar el servidor

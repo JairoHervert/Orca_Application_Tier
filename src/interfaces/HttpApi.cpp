@@ -13,7 +13,8 @@ void HttpApi::registerRoutes(
    SavePublicKeyECDSAUseCase& saveKPubUseCase,
    ChangeLevelUserUseCase& changeLevelUserUseCase,
    VerifyUserUseCase& verifyUserUseCase,
-   ChangeStatusUserUseCase& changeUserStatusUseCase
+   ChangeStatusUserUseCase& changeUserStatusUseCase,
+   SavePublicKeyRSAUseCase& saveKPubRSAUseCase
 ) {
 
    /***********************************   INICIAR UN NUEVO REPOSITORIO  ***********************************/
@@ -176,7 +177,7 @@ void HttpApi::registerRoutes(
             // 3. Extraer campos "email", "password" y "public_key"
             if (!body.contains("email") || !body.contains("password") || !body.contains("kpub_ecdsa")) {
                res.status = 400;
-               res.set_content("Missing 'email', 'password' or 'public_key' field", "text/plain");
+               res.set_content("Missing 'email', 'password' or 'public_key_ecdsa' field", "text/plain");
                return;
             }
 
@@ -213,6 +214,66 @@ void HttpApi::registerRoutes(
             // Error de negocio u otro tipo
             res.status = 500;
             std::cout << "Error saving public key: " << e.what() << std::endl << std::endl;
+            res.set_content(std::string("Internal error: ") + e.what(), "text/plain");
+         }
+      }
+   );
+
+
+   /***********************************   INSERTAR K_PUB RSA A UN USUARIO  ***********************************/
+   server_.Post("/user/add_kpub_rsa",
+      [&saveKPubRSAUseCase](const httplib::Request& req, httplib::Response& res) {
+         try {
+            // 1. Verificar que haya body
+            if (req.body.empty()) {
+               res.status = 400;
+               res.set_content("Request body is empty", "text/plain");
+               return;
+            }
+
+            // 2. Parsear JSON del body
+            nlohmann::json body = nlohmann::json::parse(req.body);
+
+            // 3. Extraer campos "email", "password" y "public_key"
+            if (!body.contains("email") || !body.contains("password") || !body.contains("kpub_rsa")) {
+               res.status = 400;
+               res.set_content("Missing 'email', 'password' or 'public_key_rsa' field", "text/plain");
+               return;
+            }
+
+            std::string email    = body["email"].get<std::string>();
+            std::string password = body["password"].get<std::string>();
+            std::string publicKey = body["kpub_rsa"].get<std::string>();
+
+            // (opcional) Validaciones simples
+            if (email.empty() || password.empty() || publicKey.empty()) {
+               res.status = 400;
+               res.set_content("Fields 'name', 'email' and 'password' cannot be empty", "text/plain");
+               return;
+            }
+
+            // 4. Ejecutar caso de uso
+            bool keySaved = saveKPubRSAUseCase.execute(email, publicKey, password);
+
+            // 5. Construir respuesta JSON
+            nlohmann::json responseBody;
+            responseBody["status"] = "ok";
+            responseBody["user_email"] = email;
+            responseBody["key_saved"]  = keySaved;
+
+            res.status = 201; // Created
+            res.set_content(responseBody.dump(), "application/json");
+            std::cout << "RSA Public key saved for user with email " << email << std::endl << std::endl;
+         }
+         catch (const nlohmann::json::parse_error &e) {
+            // Error al parsear JSON
+            res.status = 400;
+            res.set_content(std::string("Invalid JSON: ") + e.what(), "text/plain");
+         }
+         catch (const std::exception &e) {
+            // Error de negocio u otro tipo
+            res.status = 500;
+            std::cout << "Error saving RSA public key: " << e.what() << std::endl << std::endl;
             res.set_content(std::string("Internal error: ") + e.what(), "text/plain");
          }
       }

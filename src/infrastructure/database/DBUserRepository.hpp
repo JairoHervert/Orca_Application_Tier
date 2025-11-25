@@ -35,7 +35,7 @@ public:
    }
 
 
-   bool addPublicKeyToUser(const std::string &email, const std::string &publicKey) {
+   bool addPublicKeyECDSA(const std::string &email, const std::string &publicKey) {
       try {
          soci::statement st = (sql_.prepare <<
             "UPDATE users "
@@ -51,7 +51,28 @@ public:
          return affected == 1;
 
       } catch (const std::exception &e) {
-         // std::cerr << "Error en addPublicKeyToUser(): " << e.what() << "\n";
+         // std::cerr << "Error en addPublicKeyECDSA(): " << e.what() << "\n";
+         return false;
+      }
+   }
+
+   bool addPublicKeyRSA(const std::string &email, const std::string &publicKey) override {
+      try {
+         soci::statement st = (sql_.prepare <<
+            "UPDATE users "
+            "SET kpubrsa = :publicKey "
+            "WHERE email = :email",
+            soci::use(publicKey, "publicKey"),
+            soci::use(email, "email")
+         );
+
+         st.execute(true);
+
+         std::size_t affected = st.get_affected_rows();
+         return affected == 1;
+
+      } catch (const std::exception &e) {
+         // std::cerr << "Error en addPublicKeyRSA(): " << e.what() << "\n";
          return false;
       }
    }
@@ -136,6 +157,23 @@ public:
       }
 
       soci::indicator ind = row.get_indicator(0);  // columna 0: kpubecdsa
+
+      return ind == soci::i_null;
+   }
+
+   bool notRSAKeyAdded(const std::string &email) override {
+      soci::row row;
+
+      sql_ << "SELECT kpubrsa FROM users WHERE email = :email LIMIT 1",
+         soci::into(row),
+         soci::use(email, "email");
+
+      if (!sql_.got_data()) {
+         // No se encontró ningún usuario con ese email
+         return false;
+      }
+
+      soci::indicator ind = row.get_indicator(0);  // columna 0: kpubrsa
 
       return ind == soci::i_null;
    }
