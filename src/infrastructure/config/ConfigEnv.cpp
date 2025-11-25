@@ -35,6 +35,7 @@ ConfigEnv loadConfigFromEnv() {
    cfg.sslKeyPath = getEnvOrThrow("SSL_KEY_PATH");
 
    cfg.repositoriesRoot = getEnvOrThrow("REPOSITORIES_ROOT");
+   cfg.repositoriesCipher = getEnvOrThrow("REPOSITORIES_CIPHER");
 
    // Configuracion de la base de datos
    cfg.dbHost = getEnvOrThrow("DB_HOST");

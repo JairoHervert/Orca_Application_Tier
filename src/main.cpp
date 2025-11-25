@@ -21,6 +21,9 @@
 #include "application/ChangeUserStatusUseCase.hpp"
 #include "application/SavePublicKeyRSAUseCase.hpp"
 
+//////////////// Caso de uso exclusivo para pruebas ////////////////////////
+#include "application/testUseCase.hpp"
+
 
 int main() {
    try {
@@ -37,7 +40,7 @@ int main() {
       soci::session sql(soci::mysql, connStr);
 
       // 3. Infraestructura para repositorios
-      FilesystemStorage repoStore{configEnvs.repositoriesRoot};
+      FilesystemStorage repoStore{configEnvs.repositoriesRoot, configEnvs.repositoriesCipher};
       DBUserRepository userRepo{sql};
       DBProjectRepository projectRepo{sql};
 
@@ -50,6 +53,9 @@ int main() {
       ChangeStatusUserUseCase changeUserStatusUseCase{userRepo};
       SavePublicKeyRSAUseCase saveKPubRSAUseCase{userRepo};
 
+      ////////////////// Caso de uso exclusivo para pruebas ////////////////////////
+      TestUseCase testUseCase{repoStore};
+
       // 5. Crear e inicializar API HTTP con SSL
       HttpApi http_api(configEnvs.sslCertPath.c_str(), configEnvs.sslKeyPath.c_str());
 
@@ -61,7 +67,8 @@ int main() {
          changeLevelUserUseCase,
          verifyUserUseCase,
          changeUserStatusUseCase,
-         saveKPubRSAUseCase
+         saveKPubRSAUseCase,
+         testUseCase  // Caso de uso exclusivo para pruebas
       );
       
       // 7. Iniciar servidor

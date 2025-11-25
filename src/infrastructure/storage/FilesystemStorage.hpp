@@ -7,11 +7,16 @@
 
 class FilesystemStorage : public IRepositoryStore {
 public:
-   explicit FilesystemStorage(const std::filesystem::path& repositoriesRoot)
-      : rootPath_(repositoriesRoot) {
+   explicit FilesystemStorage(const std::filesystem::path& repositoriesRoot, const std::filesystem::path& cipherPath)
+      : rootPath_(repositoriesRoot), cipherPath_(cipherPath) {
       // Si la carpeta raíz no existe, crearla
       if (!std::filesystem::exists(rootPath_)) {
          std::filesystem::create_directories(rootPath_);
+      }
+
+      // Si la carpeta de cifrado no existe, crearla
+      if (!std::filesystem::exists(cipherPath_)) {
+         std::filesystem::create_directories(cipherPath_);
       }
    }
 
@@ -46,6 +51,118 @@ public:
       return repo;
    }
 
+   
+   bool deleteRepositoryFolder(const std::string &name) {
+      std::filesystem::path repoPath = rootPath_ / name;
+
+      if (!std::filesystem::exists(repoPath)) return false; // No existe
+      if (!std::filesystem::is_directory(repoPath)) return false; // No es carpeta
+
+      // Eliminar carpeta del repositorio y su contenido
+      try {
+         std::filesystem::remove_all(repoPath);
+      } catch (const std::exception &e) {
+         throw std::runtime_error("Error deleting repository folder: " + std::string(e.what()));
+      }
+
+      return true;
+   }
+
+   bool deleteRepositoryFile(const std::string &name) {
+      std::filesystem::path repoFilePath = rootPath_ / name;
+
+      if (!std::filesystem::exists(repoFilePath)) return false; // No existe
+      if (!std::filesystem::is_regular_file(repoFilePath)) return false; // No es archivo
+
+      // Eliminar archivo del repositorio
+      try {
+         std::filesystem::remove(repoFilePath);
+      } catch (const std::exception &e) {
+         throw std::runtime_error("Error deleting repository file: " + std::string(e.what()));
+      }
+
+      return true;
+   }
+
+   bool deleteCipherFile(const std::string &name) {
+      std::filesystem::path cipherFilePath = cipherPath_ / name;
+
+      if (!std::filesystem::exists(cipherFilePath)) return false; // No existe
+      if (!std::filesystem::is_regular_file(cipherFilePath)) return false; // No es archivo
+
+      // Eliminar archivo cifrado del repositorio
+      try {
+         std::filesystem::remove(cipherFilePath);
+      } catch (const std::exception &e) {
+         throw std::runtime_error("Error deleting cipher file: " + std::string(e.what()));
+      }
+
+      return true;
+   }
+
+
+   // Funcion para convertir una carpeta en un archivo .tar
+   std::filesystem::path folderToTar(const std::string &name) {
+      std::filesystem::path repoPath = rootPath_ / name;
+      std::filesystem::path tarPath = cipherPath_ / (name + ".tar");
+      
+      // Validar que el repositorio exista
+      if (!std::filesystem::exists(repoPath))
+         throw std::runtime_error("Repository directory does not exist: " + name);
+      
+      if (!std::filesystem::is_directory(repoPath))
+         throw std::runtime_error("Path is not a directory: " + name);
+      
+      // Crear el comando tar
+      // -c: crear archivo, -f: archivo de salida, -C: cambiar a directorio
+      std::string command = "tar -czf \"" + tarPath.string() + "\" -C \"" + rootPath_.string() + "\" \"" + name + "\"";
+      
+      int result = std::system(command.c_str());
+      
+      if (result != 0)
+         throw std::runtime_error("Failed to create tar archive for: " + name);
+      
+      // Verificar que el archivo tar se creó correctamente
+      if (!std::filesystem::exists(tarPath))
+         throw std::runtime_error("Tar file was not created: " + tarPath.string());
+      
+      return tarPath;
+   }
+
+
+   // Funcion para extraer un archivo .tar a una carpeta
+   std::filesystem::path tarToFolder(const std::string &name) {
+      std::filesystem::path tarPath = cipherPath_ / (name + ".tar");
+      std::filesystem::path repoPath = rootPath_ / name;
+      
+      // Validar que el archivo tar exista
+      if (!std::filesystem::exists(tarPath))
+         throw std::runtime_error("Tar file does not exist: " + tarPath.string());
+      
+      if (!std::filesystem::is_regular_file(tarPath))
+         throw std::runtime_error("Path is not a regular file: " + tarPath.string());
+      
+      // Si el directorio ya existe, lanzar excepción
+      if (std::filesystem::exists(repoPath))
+         throw std::runtime_error("Repository directory already exists: " + name);
+      
+      // Crear el comando tar para extraer
+      // -x: extraer, -z: descomprimir gzip, -f: archivo de entrada, -C: directorio destino
+      std::string command = "tar -xzf \"" + tarPath.string() + "\" -C \"" + rootPath_.string() + "\"";
+      
+      int result = std::system(command.c_str());
+      
+      if (result != 0)
+         throw std::runtime_error("Failed to extract tar archive: " + tarPath.string());
+      
+      // Verificar que el directorio se creó correctamente
+      if (!std::filesystem::exists(repoPath))
+         throw std::runtime_error("Repository directory was not created: " + repoPath.string());
+      
+      return repoPath;
+   }
+
 private:
    std::filesystem::path rootPath_;
+   std::filesystem::path cipherPath_;
 };

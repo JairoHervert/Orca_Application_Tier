@@ -13,6 +13,7 @@ struct ConfigEnv {
 
    // para las pruebas locales de guardado de repositorios
    std::string repositoriesRoot;
+   std::string repositoriesCipher;
 
    // Configuracion de la base de datos
    std::string dbHost;

@@ -14,8 +14,29 @@ void HttpApi::registerRoutes(
    ChangeLevelUserUseCase& changeLevelUserUseCase,
    VerifyUserUseCase& verifyUserUseCase,
    ChangeStatusUserUseCase& changeUserStatusUseCase,
-   SavePublicKeyRSAUseCase& saveKPubRSAUseCase
+   SavePublicKeyRSAUseCase& saveKPubRSAUseCase,
+   TestUseCase &testUseCase  // Caso de uso exclusivo para pruebas
 ) {
+   /***********************************  ENDPOINT PARA PRUEBAS  ***********************************/
+   server_.Post("/test",
+      [&testUseCase](const httplib::Request& req, httplib::Response& res) {
+
+         nlohmann::json body = nlohmann::json::parse(req.body);
+         std::string argument = body["argument"].get<std::string>();
+
+         // Ejecutar el caso de uso de prueba
+         bool hecho = testUseCase.execute(argument);
+
+         if (hecho) {
+            res.status = 200; // OK
+            res.set_content("Test use case executed successfully.", "text/plain");
+         } else {
+            res.status = 500; // Internal Server Error
+            res.set_content("Test use case failed.", "text/plain");
+         }
+      }
+   );
+
 
    /***********************************   INICIAR UN NUEVO REPOSITORIO  ***********************************/
    server_.Post("/repo/init",

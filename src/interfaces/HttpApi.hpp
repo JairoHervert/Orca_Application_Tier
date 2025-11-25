@@ -11,6 +11,9 @@
 #include "../application/ChangeUserStatusUseCase.hpp"
 #include "../application/SavePublicKeyRSAUseCase.hpp"
 
+/////////  caso de uso exclusivo para pruebas  //////////////////////
+#include "../application/testUseCase.hpp"
+
 class HttpApi {
 public:
    // Constructor
@@ -24,7 +27,8 @@ public:
       ChangeLevelUserUseCase &changeLevelUserUseCase,
       VerifyUserUseCase &verifyUserUseCase,
       ChangeStatusUserUseCase &changeUserStatusUseCase,
-      SavePublicKeyRSAUseCase &saveKPubRSAUseCase
+      SavePublicKeyRSAUseCase &saveKPubRSAUseCase,
+      TestUseCase &testUseCase  // Caso de uso exclusivo para pruebas
    );
 
    // Iniciar el servidor
