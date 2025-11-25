@@ -73,6 +73,12 @@ void HttpApi::registerRoutes(
             std::cout << "Error creating repository: " << e.what() << std::endl << std::endl;
             res.set_content(std::string("Internal error: ") + e.what(), "text/plain");
          }
+         catch (...) {
+            // Capturar cualquier otro tipo de excepción
+            res.status = 500;
+            std::cout << "Unknown error occurred while creating repository." << std::endl << std::endl;
+            res.set_content("Internal error: Unknown error occurred", "text/plain");
+         }
       }
    );
 
@@ -118,18 +124,8 @@ void HttpApi::registerRoutes(
             // 4. Ejecutar caso de uso
             bool created = createUserUseCase.execute(name, email, password);
             
-            nlohmann::json responseBody;
-
-            if (!created) {
-               res.status = 500;
-               responseBody["status"] = "error";
-               responseBody["message"] = "User could not be created";
-               res.set_content(responseBody.dump(), "application/json");
-               std::cout << "Failed to create user: " << name << " with email " << email << std::endl << std::endl;
-               return;
-            }
-
             // 5. Construir respuesta JSON
+            nlohmann::json responseBody;
             responseBody["status"] = "ok";
             responseBody["user_name"]  = name;
             responseBody["user_email"] = email;
@@ -216,6 +212,12 @@ void HttpApi::registerRoutes(
             std::cout << "Error saving public key: " << e.what() << std::endl << std::endl;
             res.set_content(std::string("Internal error: ") + e.what(), "text/plain");
          }
+         catch (...) {
+            // Capturar cualquier otro tipo de excepción
+            res.status = 500;
+            std::cout << "Unknown error occurred while saving public key." << std::endl << std::endl;
+            res.set_content("Internal error: Unknown error occurred", "text/plain");
+         }
       }
    );
 
@@ -276,6 +278,12 @@ void HttpApi::registerRoutes(
             std::cout << "Error saving RSA public key: " << e.what() << std::endl << std::endl;
             res.set_content(std::string("Internal error: ") + e.what(), "text/plain");
          }
+         catch (...) {
+            // Capturar cualquier otro tipo de excepción
+            res.status = 500;
+            std::cout << "Unknown error occurred while saving RSA public key." << std::endl << std::endl;
+            res.set_content("Internal error: Unknown error occurred", "text/plain");
+         }
       }
    );
 
@@ -317,19 +325,9 @@ void HttpApi::registerRoutes(
 
             // 4. Ejecutar caso de uso
             bool levelChanged = changeLevelUserUseCase.execute(approverEmail, approverPassword, targetUserEmail, newRole);
+
+            // mandar respuesta al cliente
             nlohmann::json responseBody;
-
-            // 5. si no se pudo cambiar el nivel
-            if (!levelChanged) {
-               res.status = 500;
-               responseBody["status"] = "error";
-               responseBody["message"] = "User level could not be changed";
-               res.set_content(responseBody.dump(), "application/json");
-               std::cout << "Failed to change level for user with email " << targetUserEmail << std::endl << std::endl;
-               return;
-            }
-
-            // 6. Construir respuesta JSON si todo salió bien
             responseBody["status"] = "ok";
             responseBody["target_user_email"] = targetUserEmail;
             responseBody["new_role"] = newRole;
@@ -348,6 +346,12 @@ void HttpApi::registerRoutes(
             res.status = 500;
             std::cout << "Error changing user level: " << e.what() << std::endl << std::endl;
             res.set_content(std::string("Internal error: ") + e.what(), "text/plain");
+         }
+         catch (...) {
+            // Capturar cualquier otro tipo de excepción
+            res.status = 500;
+            std::cout << "Unknown error occurred while changing user level." << std::endl << std::endl;
+            res.set_content("Internal error: Unknown error occurred", "text/plain");
          }
       }
    );
@@ -388,19 +392,9 @@ void HttpApi::registerRoutes(
 
             // 4. Ejecutar caso de uso
             bool statusChanged = verifyUserUseCase.execute(approverEmail, approverPassword, targetUserEmail);
+
+            // mandar respuesta al cliente
             nlohmann::json responseBody;
-
-            // 5. si no se pudo verificar el usuario
-            if (!statusChanged) {
-               res.status = 500;
-               responseBody["status"] = "error";
-               responseBody["message"] = "User could not be verified";
-               res.set_content(responseBody.dump(), "application/json");
-               std::cout << "Failed to change verify for user with email " << targetUserEmail << std::endl << std::endl;
-               return;
-            }
-
-            // 6. Construir respuesta JSON si todo salió bien
             responseBody["status"] = "ok";
             responseBody["target_user_email"] = targetUserEmail;
             res.status = 200; // OK
@@ -417,6 +411,12 @@ void HttpApi::registerRoutes(
             res.status = 500;
             std::cout << "Error changing user status: " << e.what() << std::endl << std::endl;
             res.set_content(std::string("Internal error: ") + e.what(), "text/plain");
+         }
+         catch (...) {
+            // Capturar cualquier otro tipo de excepción
+            res.status = 500;
+            std::cout << "Unknown error occurred while verifying user." << std::endl << std::endl;
+            res.set_content("Internal error: Unknown error occurred", "text/plain");
          }
       }
    );
@@ -458,19 +458,9 @@ void HttpApi::registerRoutes(
 
             // 4. Ejecutar caso de uso
             bool statusChanged = changeUserStatusUseCase.execute(approverEmail, approverPassword, targetUserEmail, newStatus);
+
+            // mandar respuesta al cliente
             nlohmann::json responseBody;
-
-            // 5. si no se pudo cambiar el status
-            if (!statusChanged) {
-               res.status = 500;
-               responseBody["status"] = "error";
-               responseBody["message"] = "User status could not be changed";
-               res.set_content(responseBody.dump(), "application/json");
-               std::cout << "Failed to change status for user with email " << targetUserEmail << std::endl << std::endl;
-               return;
-            }
-
-            // 6. Construir respuesta JSON si todo salió bien
             responseBody["status"] = "ok";
             responseBody["target_user_email"] = targetUserEmail;
             responseBody["new_status"] = newStatus;
