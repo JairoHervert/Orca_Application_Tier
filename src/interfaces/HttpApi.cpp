@@ -15,6 +15,8 @@ void HttpApi::registerRoutes(
    VerifyUserUseCase& verifyUserUseCase,
    ChangeStatusUserUseCase& changeUserStatusUseCase,
    SavePublicKeyRSAUseCase& saveKPubRSAUseCase,
+   CipherRepositoryUseCase &cipherRepoUseCase,
+
    TestUseCase &testUseCase  // Caso de uso exclusivo para pruebas
 ) {
    /***********************************  ENDPOINT PARA PRUEBAS  ***********************************/
@@ -502,6 +504,84 @@ void HttpApi::registerRoutes(
          }
       }
    );
+
+
+
+   /***********************************   CIFRAR UN REPOSITORIO  ***********************************/
+   server_.Post("/repo/protect",
+      [&cipherRepoUseCase](const httplib::Request& req, httplib::Response& res) {
+         try {
+            // 1. Verificar que haya body
+            if (req.body.empty()) {
+               res.status = 400;
+               res.set_content("Request body is empty", "text/plain");
+               return;
+            }
+
+            // 2. Parsear JSON del body
+            nlohmann::json body = nlohmann::json::parse(req.body);
+
+            // 3. Extraer campos necesarios
+            if (!body.contains("leader_email") || !body.contains("leader_password") || !body.contains("senior_email") || !body.contains("repo_name") || !body.contains("repo_tag")) {
+               res.status = 400;
+               res.set_content("Missing required fields", "text/plain");
+               return;
+            }
+
+            std::string leaderEmail    = body["leader_email"].get<std::string>();
+            std::string leaderPassword = body["leader_password"].get<std::string>();
+            std::string seniorEmail    = body["senior_email"].get<std::string>();
+            std::string repoName       = body["repo_name"].get<std::string>();
+            std::string repo_tag   = body["repo_tag"].get<std::string>();
+
+            // (opcional) Validaciones simples
+            if (leaderEmail.empty() || leaderPassword.empty() || seniorEmail.empty() || repoName.empty() || repo_tag.empty()) {
+               res.status = 400;
+               res.set_content("Email, password and repository name fields cannot be empty", "text/plain");
+               return;
+            }
+
+            // 4. Ejecutar caso de uso
+            std::string aes_rsa_key = cipherRepoUseCase.execute(leaderEmail, leaderPassword, seniorEmail, repoName, repo_tag);
+
+            // mandar respuesta al cliente
+            nlohmann::json responseBody;
+            responseBody["status"] = "ok";
+            responseBody["repo_name"] = repoName;
+            responseBody["aes_rsa_key"] = aes_rsa_key;
+            responseBody["message"] = "Store this AES key encrypted with RSA safely to decrypt the repository later. You can also retrieve it from the database when needed.";
+            res.status = 200; // OK
+            res.set_content(responseBody.dump(), "application/json");
+            std::cout << "Repository ciphered: " << repoName << " with alias " << repoName + "_" + repo_tag << std::endl << std::endl;
+         }
+         catch (const nlohmann::json::parse_error &e) {
+            // Error al parsear JSON
+            res.status = 400;
+            res.set_content(std::string("Invalid JSON: ") + e.what(), "text/plain");
+         }
+         catch (const std::exception &e) {
+            // Error de negocio u otro tipo
+            res.status = 500;
+            std::cout << "Error ciphering repository: " << e.what() << std::endl << std::endl;
+            res.set_content(std::string("Internal error: ") + e.what(), "text/plain");
+         }
+         catch (...) {
+            // Capturar cualquier otro tipo de excepción
+            res.status = 500;
+            std::cout << "Unknown error occurred while ciphering repository." << std::endl << std::endl;
+            res.set_content("Internal error: Unknown error occurred", "text/plain");
+         }
+      }
+   );
+
+
+
+   /***********************************   DESCIFRAR UN REPOSITORIO  ***********************************/
+   
+   // chance este pase a ser un get con query params porque le enviaremos el tar cifrado
+   server_.Post("/repo/dec_local_protect", [](const httplib::Request&, httplib::Response& res) {
+      res.set_content("Repository deciphered!", "text/plain");
+   });
 
 }
 

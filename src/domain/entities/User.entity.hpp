@@ -9,4 +9,5 @@ struct User {
    int status;    // 0: Inactive, 1: Active
    int verify;    // 0: Not Verified, 1: Verified
    std::string publicKeyECDSA;
+   std::string publicKeyRSA;
 };

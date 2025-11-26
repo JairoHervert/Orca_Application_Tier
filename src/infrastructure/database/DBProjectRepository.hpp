@@ -8,6 +8,29 @@ public:
    explicit DBProjectRepository(soci::session &sqlSession)
       : sql_(sqlSession) {}
 
+
+   std::optional<Repository> findById(int idProject) override {
+      soci::row row;
+      sql_ << "SELECT idproject, projectname, description, idowner "
+               "FROM projects "
+               "WHERE idproject = :idProject "
+               "LIMIT 1",
+            soci::into(row),
+            soci::use(idProject, "idProject");
+
+      if (!sql_.got_data()) {
+         return std::nullopt;
+      }
+
+      Repository p;
+      p.idProject   = row.get<int>(0);
+      p.name        = row.get<std::string>(1);
+      p.description = row.get<std::string>(2);
+      p.ownerId     = row.get<int>(3);
+
+      return p;
+   }
+      
    std::optional<Repository> findByName(const std::string &name) override {
       soci::row row;
       sql_ << "SELECT idproject, projectname, description, idowner "
@@ -57,8 +80,77 @@ public:
 
       } catch (const std::exception &e) {
          // opcional: loggear
-         // std::cerr << "[DBProjectRepository::create] " << e.what() << "\n";
+         std::cerr << "[DBProjectRepository::create] " << e.what() << "\n";
          throw; // que suba la excepción al caso de uso
+      }
+   }
+
+   bool deleteRepositoryById(int idProject) override {
+      try {
+         soci::statement st = (sql_.prepare <<
+            "DELETE FROM projects WHERE idproject = :idProject",
+            soci::use(idProject, "idProject")
+         );
+
+         st.execute(true);
+         std::size_t affected = st.get_affected_rows();
+         return affected == 1;
+
+      } catch (const std::exception &e) {
+         std::cerr << "[DBProjectRepository::deleteRepositoryById] " << e.what() << "\n";
+         return false;
+      }
+   }
+
+   bool deleteRepositoryByName(const std::string &name) override {
+      try {
+         soci::statement st = (sql_.prepare <<
+            "DELETE FROM projects WHERE projectname = :name",
+            soci::use(name, "name")
+         );
+
+         st.execute(true);
+         std::size_t affected = st.get_affected_rows();
+         return affected == 1;
+
+      } catch (const std::exception &e) {
+         std::cerr << "[DBProjectRepository::deleteRepositoryByName] " << e.what() << "\n";
+         return false;
+      }
+   }
+
+   bool addPassword_repo_user(int idUser, int idproject, std::string password, std::string projectAlias) override {
+      try {
+         soci::statement st = (sql_.prepare <<
+            "INSERT INTO repo_protect (iduser, idproject, rsa_aes, project_alias) "
+            "VALUES (:idUser, :idproject, :password, :projectAlias)",
+            soci::use(idUser,   "idUser"),
+            soci::use(idproject,"idproject"),
+            soci::use(password, "password"),
+            soci::use(projectAlias, "projectAlias")
+         );
+         st.execute(true);
+         std::size_t affected = st.get_affected_rows();
+         return affected == 1;
+
+      } catch (const std::exception &e) {
+         std::cerr << "[DBProjectRepository::addPassword_repo_user] " << e.what() << "\n";
+         return false;
+      }
+   }
+
+   bool existsRepoAlias(const std::string &projectAlias) override {
+      try {
+         int count = 0;
+         sql_ << "SELECT COUNT(*) FROM repo_protect WHERE project_alias = :projectAlias",
+            soci::into(count),
+            soci::use(projectAlias, "projectAlias");
+
+         return count > 0;
+
+      } catch (const std::exception &e) {
+         std::cerr << "[DBProjectRepository::existsRepoAlias] " << e.what() << "\n";
+         return false;
       }
    }
 

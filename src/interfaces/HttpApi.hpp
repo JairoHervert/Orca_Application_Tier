@@ -10,6 +10,7 @@
 #include "../application/VerifyUserUseCase.hpp"
 #include "../application/ChangeUserStatusUseCase.hpp"
 #include "../application/SavePublicKeyRSAUseCase.hpp"
+#include "../application/CipherRepositoryUseCase.hpp"
 
 /////////  caso de uso exclusivo para pruebas  //////////////////////
 #include "../application/testUseCase.hpp"
@@ -28,6 +29,9 @@ public:
       VerifyUserUseCase &verifyUserUseCase,
       ChangeStatusUserUseCase &changeUserStatusUseCase,
       SavePublicKeyRSAUseCase &saveKPubRSAUseCase,
+      CipherRepositoryUseCase &cipherRepoUseCase,
+
+
       TestUseCase &testUseCase  // Caso de uso exclusivo para pruebas
    );
 

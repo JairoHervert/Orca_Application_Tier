@@ -15,6 +15,8 @@ public:
 
    virtual std::optional<User> findByEmail(const std::string &email) = 0;
 
+   virtual std::optional<User> findById(int idUser) = 0;
+
    virtual bool isValidPassword(const std::string &email, const std::string &password) = 0;
 
    virtual bool isVerifiedUser(const std::string &email) = 0;

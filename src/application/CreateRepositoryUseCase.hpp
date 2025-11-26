@@ -43,11 +43,16 @@ public:
       if (!userRepository_.isLeaderUser(userEmail) && !userRepository_.isSeniorUser(userEmail))
          throw std::runtime_error(userEmail + " is not authorized to create a repository");
  
-      // Regla de negocio: no permitir duplicados
+      // No permitir duplicados: Buscar en la base de datos si ya existe un repo con ese nombre
+      auto existingDB = projectRepositoryDB_.findByName(repoName);
+      if (existingDB.has_value())
+         throw  std::runtime_error("Repository " + repoName + " already exists in DB");
+
+      // No permitir duplicados: Buscar en el storage si ya existe un repo con ese nombre
       auto existing = repositoryStore_.findByName(repoName);
-      if (existing.has_value()) {
-         throw std::runtime_error("Repository" + repoName + " already exists");
-      }
+      if (existing.has_value()) 
+         throw std::runtime_error("Repository" + repoName + " already exists in storage");
+
 
       // crear la carpeta del repositorio en el sistema de archivos
       Repository newRepo = repositoryStore_.create(repoName);

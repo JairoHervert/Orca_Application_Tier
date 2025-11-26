@@ -35,6 +35,21 @@ public:
       return std::nullopt;
    }
 
+   std::optional<Repository> findByNameInCiphers(const std::string &name) override {
+      // ruta: <cipherPath>/name.enc
+      std::filesystem::path cipherFilePath = cipherPath_ / (name + ".tar.enc");
+
+      if (std::filesystem::exists(cipherFilePath) &&
+          std::filesystem::is_regular_file(cipherFilePath)) {
+
+         Repository repo;
+         repo.name = name;
+         return repo;
+      }
+
+      return std::nullopt;
+   }
+
    Repository create(const std::string &name) override {
       std::filesystem::path repoPath = rootPath_ / name;
 
@@ -102,9 +117,9 @@ public:
 
 
    // Funcion para convertir una carpeta en un archivo .tar
-   std::filesystem::path folderToTar(const std::string &name) {
+   std::filesystem::path folderToTar(const std::string &name, const std::string &projectAlias) override {
       std::filesystem::path repoPath = rootPath_ / name;
-      std::filesystem::path tarPath = cipherPath_ / (name + ".tar");
+      std::filesystem::path tarPath = cipherPath_ / (name + "_" + projectAlias + ".tar");
       
       // Validar que el repositorio exista
       if (!std::filesystem::exists(repoPath))
@@ -129,38 +144,49 @@ public:
       return tarPath;
    }
 
-
-   // Funcion para extraer un archivo .tar a una carpeta
-   std::filesystem::path tarToFolder(const std::string &name) {
-      std::filesystem::path tarPath = cipherPath_ / (name + ".tar");
-      std::filesystem::path repoPath = rootPath_ / name;
-      
-      // Validar que el archivo tar exista
+   
+   // Funcion para extraer un archivo .tar (o .tar.gz) a una carpeta
+   std::filesystem::path tarToFolder(const std::filesystem::path &tarPath) override {
       if (!std::filesystem::exists(tarPath))
          throw std::runtime_error("Tar file does not exist: " + tarPath.string());
-      
+
       if (!std::filesystem::is_regular_file(tarPath))
          throw std::runtime_error("Path is not a regular file: " + tarPath.string());
-      
-      // Si el directorio ya existe, lanzar excepción
+
+      // Nombre base de la carpeta destino, a partir del nombre del archivo
+      // Ej: cripto22.tar        -> cripto22
+      //     cripto22_dec.tar    -> cripto22_dec
+      std::string repoName = tarPath.stem().string();
+      std::filesystem::path repoPath = rootPath_ / repoName;
+
       if (std::filesystem::exists(repoPath))
-         throw std::runtime_error("Repository directory already exists: " + name);
-      
-      // Crear el comando tar para extraer
-      // -x: extraer, -z: descomprimir gzip, -f: archivo de entrada, -C: directorio destino
-      std::string command = "tar -xzf \"" + tarPath.string() + "\" -C \"" + rootPath_.string() + "\"";
-      
+         throw std::runtime_error("Repository directory already exists: " + repoPath.string());
+
+      // Crear el directorio destino
+      std::filesystem::create_directories(repoPath);
+
+      // Extraer el tar en esa carpeta
+      // OJO: tu tar se creó con: tar -czf "<tarPath>" -C "<rootPath_>" "<name>"
+      // Eso significa que dentro del tar hay una carpeta "<name>/..."
+      //
+      // Para que el contenido quede directo en repoPath (sin carpeta extra),
+      // usamos --strip-components=1
+      std::string command =
+         "tar -xzf \"" + tarPath.string() + "\" "
+         "-C \"" + repoPath.string() + "\" "
+         "--strip-components=1";
+
       int result = std::system(command.c_str());
-      
       if (result != 0)
          throw std::runtime_error("Failed to extract tar archive: " + tarPath.string());
-      
-      // Verificar que el directorio se creó correctamente
+
+      // Verificar que algo se haya creado (opcional)
       if (!std::filesystem::exists(repoPath))
          throw std::runtime_error("Repository directory was not created: " + repoPath.string());
-      
+
       return repoPath;
    }
+
 
 private:
    std::filesystem::path rootPath_;

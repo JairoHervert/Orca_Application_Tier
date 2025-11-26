@@ -11,6 +11,7 @@
 #include "infrastructure/database/DBUserRepository.hpp"
 #include "infrastructure/storage/FilesystemStorage.hpp"
 #include "infrastructure/database/DBProjectRepository.hpp"
+#include "infrastructure/crypto/ProtectRepo.hpp"
 
 // Casos de uso
 #include "application/CreateRepositoryUseCase.hpp"
@@ -20,6 +21,7 @@
 #include "application/VerifyUserUseCase.hpp"
 #include "application/ChangeUserStatusUseCase.hpp"
 #include "application/SavePublicKeyRSAUseCase.hpp"
+#include "application/CipherRepositoryUseCase.hpp"
 
 //////////////// Caso de uso exclusivo para pruebas ////////////////////////
 #include "application/testUseCase.hpp"
@@ -43,6 +45,7 @@ int main() {
       FilesystemStorage repoStore{configEnvs.repositoriesRoot, configEnvs.repositoriesCipher};
       DBUserRepository userRepo{sql};
       DBProjectRepository projectRepo{sql};
+      ProtectRepoCrypto repoCrypto{};
 
       // 4. Casos de uso (aplicacion)
       CreateRepositoryUseCase createRepoUseCase{repoStore, userRepo, projectRepo};
@@ -52,9 +55,10 @@ int main() {
       VerifyUserUseCase verifyUserUseCase{userRepo};
       ChangeStatusUserUseCase changeUserStatusUseCase{userRepo};
       SavePublicKeyRSAUseCase saveKPubRSAUseCase{userRepo};
+      CipherRepositoryUseCase cipherRepoUseCase{repoStore, projectRepo, userRepo, repoCrypto};
 
       ////////////////// Caso de uso exclusivo para pruebas ////////////////////////
-      TestUseCase testUseCase{repoStore};
+      TestUseCase testUseCase{repoStore, repoCrypto};
 
       // 5. Crear e inicializar API HTTP con SSL
       HttpApi http_api(configEnvs.sslCertPath.c_str(), configEnvs.sslKeyPath.c_str());
@@ -68,6 +72,8 @@ int main() {
          verifyUserUseCase,
          changeUserStatusUseCase,
          saveKPubRSAUseCase,
+         cipherRepoUseCase,
+
          testUseCase  // Caso de uso exclusivo para pruebas
       );
       

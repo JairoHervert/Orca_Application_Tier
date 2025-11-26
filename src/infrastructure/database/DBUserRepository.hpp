@@ -82,7 +82,7 @@ public:
    std::optional<User> findByEmail(const std::string &email) override {
       soci::row row;
 
-      sql_ << "SELECT iduser, name, email, role, status, verify, kpubecdsa FROM users WHERE email = :email LIMIT 1",
+      sql_ << "SELECT iduser, name, email, role, status, verify, kpubecdsa, kpubrsa FROM users WHERE email = :email LIMIT 1",
          soci::into(row),
          soci::use(email, "email");
 
@@ -101,13 +101,50 @@ public:
       user.verify = row.get<int>(5);              // columna 5: verify
       
       // --- Manejo de posible NULL en la columna kpubecdsa ---
-      soci::indicator ind = row.get_indicator(6);  
-
-      if (ind == soci::i_null) user.publicKeyECDSA = "NULL";
+      soci::indicator indECDSA = row.get_indicator(6);  
+      if (indECDSA == soci::i_null) user.publicKeyECDSA = "NULL";
       else user.publicKeyECDSA = row.get<std::string>(6);
+
+      // --- Manejo de posible NULL en la columna kpubrsa ---
+      soci::indicator indRSA = row.get_indicator(7);
+      if (indRSA == soci::i_null) user.publicKeyRSA = "NULL";
+      else user.publicKeyRSA = row.get<std::string>(7);
    
       return user;
    }
+
+   std::optional<User> findById(int idUser) override {
+      soci::row row;
+
+      sql_ << "SELECT iduser, name, email, role, status, verify, kpubecdsa, kpubrsa FROM users WHERE iduser = :idUser LIMIT 1",
+         soci::into(row),
+         soci::use(idUser, "idUser");
+
+      if (!sql_.got_data()) {
+         return std::nullopt;
+      }
+
+      User user;
+      user.idUser = row.get<int>(0);              // columna 0: idUser
+      user.name   = row.get<std::string>(1);      // columna 1: name
+      user.email  = row.get<std::string>(2);      // columna 2: email
+      user.role   = row.get<int>(3);              // columna 3: role
+      user.status = row.get<int>(4);              // columna 4: status
+      user.verify = row.get<int>(5);              // columna 5: verify
+      
+      // --- Manejo de posible NULL en la columna kpubecdsa ---
+      soci::indicator indECDSA = row.get_indicator(6);  
+      if (indECDSA == soci::i_null) user.publicKeyECDSA = "NULL";
+      else user.publicKeyECDSA = row.get<std::string>(6);
+
+      // --- Manejo de posible NULL en la columna kpubrsa ---
+      soci::indicator indRSA = row.get_indicator(7);
+      if (indRSA == soci::i_null) user.publicKeyRSA = "NULL";
+      else user.publicKeyRSA = row.get<std::string>(7);
+   
+      return user;
+   }
+
 
    bool isValidPassword(const std::string &email, const std::string &password) override {
       int count = 0;

@@ -10,6 +10,8 @@ public:
 
    virtual std::optional<Repository> findByName(const std::string &name) = 0;
 
+   virtual std::optional<Repository> findByNameInCiphers(const std::string &name) = 0;
+
    virtual Repository create(const std::string &name) = 0;
 
    virtual bool deleteRepositoryFolder(const std::string &name) = 0;
@@ -18,8 +20,8 @@ public:
 
    virtual bool deleteCipherFile(const std::string &name) = 0;
 
-   virtual std::filesystem::path folderToTar(const std::string &name) = 0;
+   virtual std::filesystem::path folderToTar(const std::string &name, const std::string &projectAlias) = 0;
 
-   virtual std::filesystem::path tarToFolder(const std::string &name) = 0;
+   virtual std::filesystem::path tarToFolder(const std::filesystem::path &tarPath) = 0;
 
 };

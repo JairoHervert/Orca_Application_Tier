@@ -6,4 +6,5 @@ struct Repository {
    std::string name;
    std::string description;
    int ownerId;   // FK a users.iduser
+
 };
