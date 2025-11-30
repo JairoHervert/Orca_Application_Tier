@@ -17,6 +17,9 @@ public:
 
    virtual bool deleteRepositoryByName(const std::string &name) = 0;
 
+   virtual bool existsUserInProject(int idProject, int idUser) = 0;
+
+   virtual bool addUserToProject(int idProject, int idUser) = 0;
 
    /************* Tabla de passwords/usuarios para repositorios cifrados *************/
    virtual bool addPassword_repo_user(int idUser, int idproject, std::string password, std::string projectAlias) = 0;

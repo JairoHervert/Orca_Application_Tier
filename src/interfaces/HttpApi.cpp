@@ -16,6 +16,7 @@ void HttpApi::registerRoutes(
    ChangeStatusUserUseCase& changeUserStatusUseCase,
    SavePublicKeyRSAUseCase& saveKPubRSAUseCase,
    CipherRepositoryUseCase &cipherRepoUseCase,
+   AddUserToRepoUseCase &addUserToRepoUseCase,
 
    TestUseCase &testUseCase  // Caso de uso exclusivo para pruebas
 ) {
@@ -505,6 +506,71 @@ void HttpApi::registerRoutes(
       }
    );
 
+
+   /***********************************   AGREGAR UN USUARIO A UN REPOSITORIO  ***********************************/
+   server_.Post("/repo/add_user",
+      [&addUserToRepoUseCase](const httplib::Request& req, httplib::Response& res) {
+         try {
+            // 1. Verificar que haya body
+            if (req.body.empty()) {
+               res.status = 400;
+               res.set_content("Request body is empty", "text/plain");
+               return;
+            }
+
+            // 2. Parsear JSON del body
+            nlohmann::json body = nlohmann::json::parse(req.body);
+
+            // 3. Extraer campos necesarios
+            if (!body.contains("approverEmail") || !body.contains("approverPassword") || !body.contains("projectName") || !body.contains("userEmail")) {
+               res.status = 400;
+               res.set_content("Missing required fields", "text/plain");
+               return;
+            }
+
+            std::string approverEmail    = body["approverEmail"].get<std::string>();
+            std::string approverPassword = body["approverPassword"].get<std::string>();
+            std::string idProject        = body["projectName"].get<std::string>();
+            std::string idUser           = body["userEmail"].get<std::string>();
+
+            // Validacion de campos
+            if (approverEmail.empty() || approverPassword.empty() || idProject.empty() || idUser.empty()) {
+               res.status = 400;
+               res.set_content("Email and password fields cannot be empty", "text/plain");
+               return;
+            }
+
+            // 4. Ejecutar caso de uso
+            addUserToRepoUseCase.execute(approverEmail, approverPassword, idProject, idUser);
+
+            // mandar respuesta al cliente
+            nlohmann::json responseBody;
+            responseBody["status"] = "ok";
+            responseBody["project_name"] = idProject;
+            responseBody["user_email"] = idUser;
+            res.status = 200; // OK
+            res.set_content(responseBody.dump(), "application/json");
+            std::cout << "User with ID " << idUser << " added to project with ID " << idProject << std::endl << std::endl;
+         }
+         catch (const nlohmann::json::parse_error &e) {
+            // Error al parsear JSON
+            res.status = 400;
+            res.set_content(std::string("Invalid JSON: ") + e.what(), "text/plain");
+         }
+         catch (const std::exception &e) {
+            // Error de negocio u otro tipo
+            res.status = 500;
+            std::cout << "Error adding user to project: " << e.what() << std::endl << std::endl;
+            res.set_content(std::string("Internal error: ") + e.what(), "text/plain");
+         }
+         catch (...) {
+            // Capturar cualquier otro tipo de excepción
+            res.status = 500;
+            std::cout << "Unknown error occurred while adding user to project." << std::endl << std::endl;
+            res.set_content("Internal error: Unknown error occurred", "text/plain");
+         }
+      }
+   );
 
 
    /***********************************   CIFRAR UN REPOSITORIO  ***********************************/

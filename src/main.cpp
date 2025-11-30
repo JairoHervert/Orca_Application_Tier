@@ -22,6 +22,7 @@
 #include "application/ChangeUserStatusUseCase.hpp"
 #include "application/SavePublicKeyRSAUseCase.hpp"
 #include "application/CipherRepositoryUseCase.hpp"
+#include "application/AddUserToRepoUseCase.hpp"
 
 //////////////// Caso de uso exclusivo para pruebas ////////////////////////
 #include "application/testUseCase.hpp"
@@ -56,6 +57,7 @@ int main() {
       ChangeStatusUserUseCase changeUserStatusUseCase{userRepo};
       SavePublicKeyRSAUseCase saveKPubRSAUseCase{userRepo};
       CipherRepositoryUseCase cipherRepoUseCase{repoStore, projectRepo, userRepo, repoCrypto};
+      AddUserToRepoUseCase addUserToRepoUseCase{projectRepo, userRepo};
 
       ////////////////// Caso de uso exclusivo para pruebas ////////////////////////
       TestUseCase testUseCase{repoStore, repoCrypto};
@@ -73,6 +75,7 @@ int main() {
          changeUserStatusUseCase,
          saveKPubRSAUseCase,
          cipherRepoUseCase,
+         addUserToRepoUseCase,
 
          testUseCase  // Caso de uso exclusivo para pruebas
       );

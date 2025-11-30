@@ -119,6 +119,42 @@ public:
       }
    }
 
+   
+   bool existsUserInProject(int idProject, int idUser) {
+      try {
+         int count = 0;
+         sql_ << "SELECT COUNT(*) FROM users_has_projects WHERE idproject = :idProject AND iduser = :idUser",
+            soci::into(count),
+            soci::use(idProject, "idProject"),
+            soci::use(idUser,    "idUser");
+
+         return count > 0;
+
+      } catch (const std::exception &e) {
+         std::cerr << "[DBProjectRepository::existsUserInProject] " << e.what() << "\n";
+         return false;
+      }
+   }
+
+   bool addUserToProject(int idProject, int idUser) override {
+      try {
+         soci::statement st = (sql_.prepare <<
+            "INSERT INTO users_has_projects (iduser, idproject) "
+            "VALUES (:idUser, :idProject)",
+            soci::use(idUser,    "idUser"),
+            soci::use(idProject, "idProject")
+         );
+         st.execute(true);
+         std::size_t affected = st.get_affected_rows();
+         return affected == 1;
+
+      } catch (const std::exception &e) {
+         std::cerr << "[DBProjectRepository::addUserToProject] " << e.what() << "\n";
+         return false;
+      }
+   }
+
+
    bool addPassword_repo_user(int idUser, int idproject, std::string password, std::string projectAlias) override {
       try {
          soci::statement st = (sql_.prepare <<
