@@ -177,8 +177,8 @@ public:
          }
 
          // Configurar cifrador RSA-OAEP con SHA-256
-         CryptoPP::RSAES_OAEP_SHA_Encryptor encryptor(publicKey);
-         //CryptoPP::RSAES<CryptoPP::OAEP<CryptoPP::SHA256>>::Encryptor encryptor(publicKey);
+         // CryptoPP::RSAES_OAEP_SHA_Encryptor encryptor(publicKey);
+         CryptoPP::RSAES<CryptoPP::OAEP<CryptoPP::SHA256>>::Encryptor encryptor(publicKey);
 
 
          // Cifrar el texto plano
