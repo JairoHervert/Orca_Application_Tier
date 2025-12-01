@@ -17,6 +17,8 @@ void HttpApi::registerRoutes(
    SavePublicKeyRSAUseCase& saveKPubRSAUseCase,
    CipherRepositoryUseCase &cipherRepoUseCase,
    AddUserToRepoUseCase &addUserToRepoUseCase,
+   CloneRepositoryUseCase &cloneRepoUseCase,
+   DecipherRepositoryUseCase &decipherRepoUseCase,
 
    TestUseCase &testUseCase  // Caso de uso exclusivo para pruebas
 ) {
@@ -108,10 +110,61 @@ void HttpApi::registerRoutes(
 
 
    /***********************************   CLONAR UN REPOSITORIO  ***********************************/
-   server_.Get("/repo/clone", [](const httplib::Request&, httplib::Response& res) {
-      res.set_content("Repository cloned!", "text/plain");
-   });
+   server_.Post("/repo/clone", 
+      [&cloneRepoUseCase](const httplib::Request& req, httplib::Response& res) {
+         try {
 
+            // 1. Verificar que haya body
+            if (req.body.empty()) {
+               res.status = 400;
+               res.set_content("Request body is empty", "text/plain");
+               return;
+            }
+
+            // 2. Extraer JSON del body
+            nlohmann::json body = nlohmann::json::parse(req.body);
+
+            // 3. Extraer campos "repo_name", "user_email" y "user_password"
+            if (!body.contains("repoName") || !body.contains("userEmail") || !body.contains("userPassword")) {
+               res.status = 400;
+               res.set_content("Missing 'repoName', 'userEmail' or 'userPassword' field", "text/plain");
+               return;
+            }
+
+            std::string repoName    = body["repoName"].get<std::string>();
+            std::string userEmail   = body["userEmail"].get<std::string>();
+            std::string userPassword = body["userPassword"].get<std::string>();
+
+            // 4. Validaciones simples
+            if (repoName.empty() || userEmail.empty() || userPassword.empty()) {
+               res.status = 400;
+               res.set_content("Fields 'repoName', 'userEmail' and 'userPassword' cannot be empty", "text/plain");
+               return;
+            }
+
+            // 5. Ejecutar caso de uso
+            std::ostringstream repoStream = cloneRepoUseCase.execute(repoName, userEmail, userPassword);
+
+            // Enviar repositorio como archivo tar adjunto
+            std::string fileContent = repoStream.str();
+            res.set_content(fileContent, "application/octet-stream");
+            res.set_header("Content-Disposition", "attachment; filename=\"" + repoName + "\"");
+            res.status = 200;
+
+            std::cout << "Repository cloned: " << repoName << " by user " << userEmail << std::endl << std::endl;
+         }
+         catch (const std::exception &e) {
+            res.status = 500;
+            std::cout << "Error cloning repository: " << e.what() << std::endl;
+            res.set_content(std::string("Internal error: ") + e.what(), "text/plain");
+         }
+         catch (...) {
+            res.status = 500;
+            std::cout << "Unknown error occurred while cloning repository." << std::endl;
+            res.set_content("Internal error: Unknown error occurred", "text/plain");
+         }
+      }
+   );
 
    /***********************************   DAR DE ALTA NUEVO USER  ***********************************/
    server_.Post("/user/create",
@@ -645,10 +698,59 @@ void HttpApi::registerRoutes(
    /***********************************   DESCIFRAR UN REPOSITORIO  ***********************************/
    
    // chance este pase a ser un get con query params porque le enviaremos el tar cifrado
-   server_.Post("/repo/dec_local_protect", [](const httplib::Request&, httplib::Response& res) {
-      res.set_content("Repository deciphered!", "text/plain");
-   });
+   server_.Post("/repo/unprotect", 
+      [&decipherRepoUseCase](const httplib::Request& req, httplib::Response& res) {
+         try {
+            // 1. Verificar que haya body
+            if (req.body.empty()) {
+               res.status = 400;
+               res.set_content("Request body is empty", "text/plain");
+               return;
+            }
 
+            // 2. Parsear JSON del body
+            nlohmann::json body = nlohmann::json::parse(req.body);
+
+            // 3. Extraer campos necesarios
+            if (!body.contains("userEmail") || !body.contains("userPassword") || !body.contains("repoName")) {
+               res.set_content("Missing required fields", "text/plain");
+               return;
+            }
+
+            std::string userEmail    = body["userEmail"].get<std::string>();
+            std::string userPassword = body["userPassword"].get<std::string>();
+            std::string repoName       = body["repoName"].get<std::string>();
+
+            // (opcional) Validaciones simples
+            if (userEmail.empty() || userPassword.empty() || repoName.empty()) {
+               res.status = 400;
+               res.set_content("Email, password, repository cipher name fields cannot be empty", "text/plain");
+               return;
+            }
+
+            // 4. Ejecutar caso de uso
+            std::ostringstream cipherRepoStream = decipherRepoUseCase.execute(repoName, userEmail, userPassword);
+
+            // Enviar repositorio como archivo tar adjunto
+            std::string fileContent = cipherRepoStream.str();
+            res.set_content(fileContent, "application/octet-stream");
+            res.set_header("Content-Disposition", "attachment; filename=\"" + repoName + "\"");
+            res.status = 200;
+
+            std::cout << "Repository cipher: " << repoName << " send to user " << userEmail << std::endl << std::endl;
+         }
+         catch (const std::exception &e) {
+            res.status = 500;
+            std::cout << "Error sending ciphered repository: " << e.what() << std::endl;
+            res.set_content(std::string("Internal error: ") + e.what(), "text/plain");
+         }
+         catch (...) {
+            res.status = 500;
+            std::cout << "Unknown error occurred while sending ciphered repository." << std::endl;
+            res.set_content("Internal error: Unknown error occurred", "text/plain");
+         }
+      }
+   );
 }
 
 void HttpApi::listen(const char* host, int port) {

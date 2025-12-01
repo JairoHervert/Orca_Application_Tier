@@ -12,6 +12,8 @@
 #include "../application/SavePublicKeyRSAUseCase.hpp"
 #include "../application/CipherRepositoryUseCase.hpp"
 #include "../application/AddUserToRepoUseCase.hpp"
+#include "../application/CloneRepositoryUseCase.hpp"
+#include "../application/DecipherRepositoryUseCase.hpp"
 
 /////////  caso de uso exclusivo para pruebas  //////////////////////
 #include "../application/testUseCase.hpp"
@@ -32,6 +34,8 @@ public:
       SavePublicKeyRSAUseCase &saveKPubRSAUseCase,
       CipherRepositoryUseCase &cipherRepoUseCase,
       AddUserToRepoUseCase &addUserToRepoUseCase,
+      CloneRepositoryUseCase &cloneRepoUseCase,
+      DecipherRepositoryUseCase &decipherRepoUseCase,
 
 
       TestUseCase &testUseCase  // Caso de uso exclusivo para pruebas

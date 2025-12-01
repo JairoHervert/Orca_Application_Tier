@@ -190,6 +190,22 @@ public:
       }
    }
 
+   bool existsUserInCipherProject(const std::string &projectAlias, int idUser) override {
+      try {
+         int count = 0;
+         sql_ << "SELECT COUNT(*) FROM repo_protect WHERE project_alias = :projectAlias AND iduser = :idUser",
+            soci::into(count),
+            soci::use(projectAlias, "projectAlias"),
+            soci::use(idUser, "idUser");
+
+         return count > 0;
+
+      } catch (const std::exception &e) {
+         std::cerr << "[DBProjectRepository::existsUserInCipherProject] " << e.what() << "\n";
+         return false;
+      }
+   }
+
 private:
    soci::session &sql_;
 };

@@ -23,6 +23,8 @@
 #include "application/SavePublicKeyRSAUseCase.hpp"
 #include "application/CipherRepositoryUseCase.hpp"
 #include "application/AddUserToRepoUseCase.hpp"
+#include "application/CloneRepositoryUseCase.hpp"
+#include "application/DecipherRepositoryUseCase.hpp"
 
 //////////////// Caso de uso exclusivo para pruebas ////////////////////////
 #include "application/testUseCase.hpp"
@@ -45,19 +47,21 @@ int main() {
       // 3. Infraestructura para repositorios
       FilesystemStorage repoStore{configEnvs.repositoriesRoot, configEnvs.repositoriesCipher};
       DBUserRepository userRepo{sql};
-      DBProjectRepository projectRepo{sql};
+      DBProjectRepository projectRepoDB{sql};
       ProtectRepoCrypto repoCrypto{};
 
       // 4. Casos de uso (aplicacion)
-      CreateRepositoryUseCase createRepoUseCase{repoStore, userRepo, projectRepo};
+      CreateRepositoryUseCase createRepoUseCase{repoStore, userRepo, projectRepoDB};
       CreateUserUseCase createUserUseCase{userRepo};
       SavePublicKeyECDSAUseCase saveKPubUseCase{userRepo};
       ChangeLevelUserUseCase changeLevelUserUseCase{userRepo};
       VerifyUserUseCase verifyUserUseCase{userRepo};
       ChangeStatusUserUseCase changeUserStatusUseCase{userRepo};
       SavePublicKeyRSAUseCase saveKPubRSAUseCase{userRepo};
-      CipherRepositoryUseCase cipherRepoUseCase{repoStore, projectRepo, userRepo, repoCrypto};
-      AddUserToRepoUseCase addUserToRepoUseCase{projectRepo, userRepo};
+      CipherRepositoryUseCase cipherRepoUseCase{repoStore, projectRepoDB, userRepo, repoCrypto};
+      AddUserToRepoUseCase addUserToRepoUseCase{projectRepoDB, userRepo};
+      CloneRepositoryUseCase cloneRepoUseCase{repoStore, userRepo, projectRepoDB};
+      DecipherRepositoryUseCase decipherRepoUseCase{repoStore, userRepo, projectRepoDB};
 
       ////////////////// Caso de uso exclusivo para pruebas ////////////////////////
       TestUseCase testUseCase{repoStore, repoCrypto};
@@ -66,7 +70,7 @@ int main() {
       HttpApi http_api(configEnvs.sslCertPath.c_str(), configEnvs.sslKeyPath.c_str());
 
       // 6. Registrar rutas e inyectar casos de uso donde se necesite
-      http_api.registerRoutes(
+      http_api.registerRoutes( 
          createRepoUseCase,
          createUserUseCase,
          saveKPubUseCase,
@@ -76,6 +80,8 @@ int main() {
          saveKPubRSAUseCase,
          cipherRepoUseCase,
          addUserToRepoUseCase,
+         cloneRepoUseCase,
+         decipherRepoUseCase,
 
          testUseCase  // Caso de uso exclusivo para pruebas
       );

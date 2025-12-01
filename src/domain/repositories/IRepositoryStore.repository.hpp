@@ -24,4 +24,10 @@ public:
 
    virtual std::filesystem::path tarToFolder(const std::filesystem::path &tarPath) = 0;
 
+   virtual std::ostringstream getFileAsStream(const std::string &filePath, const std::string &name) = 0;
+
+   virtual std::ostringstream getRepoAsStream(const std::string &name) = 0;
+
+   virtual std::ostringstream getCipherAsStream(const std::string &name) = 0;
+
 };

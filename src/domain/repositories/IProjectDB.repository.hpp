@@ -26,4 +26,6 @@ public:
 
    virtual bool existsRepoAlias(const std::string &projectAlias) = 0;
 
+   virtual bool existsUserInCipherProject(const std::string &projectAlias, int idUser) = 0;
+
 };

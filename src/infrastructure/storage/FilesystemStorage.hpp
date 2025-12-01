@@ -2,6 +2,8 @@
 #pragma once
 #include "../../domain/repositories/IRepositoryStore.repository.hpp"
 #include <filesystem>
+#include <fstream>
+#include <sstream>
 #include <optional>
 #include <stdexcept>
 
@@ -187,6 +189,24 @@ public:
       return repoPath;
    }
 
+   std::ostringstream getFileAsStream(const std::string &filePath, const std::string &name) {
+      std::string ruta = filePath + "/" + name;
+
+      std::ifstream fileStream(ruta, std::ios::binary);
+
+      std::ostringstream oss;
+      oss << fileStream.rdbuf();
+      return oss;
+   }
+
+   // Obtener el ostringstream un repositorio y de la carpeta de los cifrados usando la funcion anterior
+   std::ostringstream getRepoAsStream(const std::string &name) {
+      return getFileAsStream(rootPath_.string(), name);
+   }
+
+   std::ostringstream getCipherAsStream(const std::string &name) {
+      return getFileAsStream(cipherPath_.string(), name);
+   }
 
 private:
    std::filesystem::path rootPath_;
