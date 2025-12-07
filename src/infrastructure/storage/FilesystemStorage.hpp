@@ -388,6 +388,31 @@ public:
       }
    }
 
+   bool deleteFile(const std::string &repoName, const std::filesystem::path &relativePath) override {
+      try {
+         // Ruta completa: <rootPath_>/<repoName>/<relativePath>
+         std::filesystem::path fullPath = rootPath_ / repoName / relativePath;
+
+         if (!std::filesystem::exists(fullPath)) {
+            std::cerr << "[FilesystemStorage::deleteFile] File does not exist: " << fullPath << std::endl;
+            return false;
+         }
+
+         if (!std::filesystem::is_regular_file(fullPath)) {
+            std::cerr << "[FilesystemStorage::deleteFile] Not a regular file: " << fullPath << std::endl;
+            return false;
+         }
+
+         std::filesystem::remove(fullPath);
+
+         std::cout << "✓ Deleted repo file: " << fullPath.string() << std::endl;
+         return true;
+
+      } catch (const std::exception &e) {
+         std::cerr << "[FilesystemStorage::deleteFile] " << e.what() << std::endl;
+         return false;
+      }
+   }
 
 private:
    std::filesystem::path rootPath_;

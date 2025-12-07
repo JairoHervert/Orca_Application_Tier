@@ -51,4 +51,8 @@ public:
    // Copiar un único archivo desde workspace al repo real
    virtual void updateFileFromWorkspace(const std::string &repoName, const std::filesystem::path &extractedBase, const std::filesystem::path &relativePath) = 0;
 
+
+   // IRepositoryStore.repository.hpp
+   virtual bool deleteFile(const std::string &repoName, const std::filesystem::path &relativePath) = 0;
+
 };

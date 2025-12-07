@@ -1,7 +1,7 @@
 #include <iostream>
 #include "HttpApi.hpp"
 #include "../third_party/json.hpp"
-#include <fstream>
+#include "../domain/entities/PushOperation.entity.hpp"
 
 HttpApi::HttpApi(const char* certPath, const char* keyPath)
    : server_(certPath, keyPath) {
@@ -844,55 +844,97 @@ void HttpApi::registerRoutes(
                return "";
             };
 
-            std::string repoName       = get_text_field("repoName");
-            std::string userEmail      = get_text_field("userEmail");
-            std::string userPassword   = get_text_field("userPassword");
-            std::string signaturesJson = get_text_field("signatures");
+            std::string repoName     = get_text_field("repoName");
+            std::string userEmail    = get_text_field("userEmail");
+            std::string userPassword = get_text_field("userPassword");
+            std::string operationsJson = get_text_field("operations"); // 👈 ahora viene un JSON de operaciones
 
-            if (repoName.empty() || userEmail.empty() || userPassword.empty() || signaturesJson.empty()) {
+            if (repoName.empty() || userEmail.empty() || userPassword.empty() || operationsJson.empty()) {
                res.status = 400;
-               res.set_content("Missing required fields", "text/plain");
+               res.set_content("Missing required fields (repoName, userEmail, userPassword, operations)", "text/plain");
                return;
             }
 
-            // 1) Parsear JSON de firmas -> map
-            nlohmann::json signatures = nlohmann::json::parse(signaturesJson);
+            // 1) Parsear JSON de operaciones -> vector<PushOperation>
+            nlohmann::json opsJson = nlohmann::json::parse(operationsJson);
 
-            std::map<std::string, std::string> fileSignatures;
-            for (auto &item : signatures.items()) {
-               const std::string &path         = item.key();
-               const std::string &signatureB64 = item.value().get<std::string>();
-               fileSignatures[path] = signatureB64;
-            }
+            std::vector<PushOperation> operations;
 
-            // 2) Extraer archivo tar (pero sin guardarlo aquí)
-            if (!req.has_file("tarFile")) {
+            // Soportar tanto:
+            //  - { "operations": [ {...}, {...} ] }
+            //  - [ {...}, {...} ]
+            nlohmann::json opsArray;
+            if (opsJson.is_array()) {
+               opsArray = opsJson;
+            } else if (opsJson.contains("operations") && opsJson["operations"].is_array()) {
+               opsArray = opsJson["operations"];
+            } else {
                res.status = 400;
-               res.set_content("Missing 'tarFile' field", "text/plain");
+               res.set_content("Invalid 'operations' JSON format", "text/plain");
                return;
             }
 
-            auto tarFile = req.get_file_value("tarFile");
-            std::string tarFilename = tarFile.filename;      // "cambios.tar"
-            std::string tarContent  = std::move(tarFile.content); // binario
+            for (const auto &item : opsArray) {
+               if (!item.contains("op") || !item.contains("path") || !item.contains("signature")) {
+                  res.status = 400;
+                  res.set_content("Each operation must contain 'op', 'path' and 'signature'", "text/plain");
+                  return;
+               }
 
-            std::cout << "✓ Archivo .tar recibido en memoria: " << tarFilename << " (" << tarContent.size() << " bytes)" << std::endl;
+               PushOperation op;
+               op.op        = item["op"].get<std::string>();        // "update" o "delete"
+               op.path      = item["path"].get<std::string>();
+               op.signature = item["signature"].get<std::string>();
 
-            // 3) Llamar al caso de uso: él se encargará de guardar el tar, descomprimir, verificar, etc.
+               if (op.op != "update" && op.op != "delete") {
+                  res.status = 400;
+                  res.set_content("Invalid operation type: " + op.op, "text/plain");
+                  return;
+               }
+
+               operations.push_back(op);
+            }
+
+            // 2) Extraer archivo tar (opcional: solo necesario si hay operaciones 'update')
+            std::string tarFilename;
+            std::string tarContent;
+
+            if (req.has_file("tarFile")) {
+               auto tarFile = req.get_file_value("tarFile");
+               tarFilename  = tarFile.filename;           // p.ej. "cambios.tar"
+               tarContent   = std::move(tarFile.content); // binario
+
+               std::cout << "✓ Archivo .tar recibido en memoria: "
+                        << tarFilename << " (" << tarContent.size() << " bytes)" << std::endl;
+            } else {
+               // Si no hay tarFile, solo se podrán procesar operaciones 'delete'
+               std::cout << "No tarFile provided; only DELETE operations will be applicable." << std::endl;
+            }
+
+            // 3) Llamar al caso de uso: él se encargará de guardar el tar (si lo hay), descomprimir, verificar, etc.
             bool ok = pushVerifyUseCase.execute(
                userEmail,
                userPassword,
                repoName,
                tarFilename,
                tarContent,
-               fileSignatures
+               operations
             );
 
-            // 4) Respuesta
+            // 4) Respuesta al cliente
+            std::size_t updates = 0;
+            std::size_t deletes = 0;
+            for (const auto &op : operations) {
+               if (op.op == "update") ++updates;
+               else if (op.op == "delete") ++deletes;
+            }
+
             nlohmann::json responseBody;
-            responseBody["repoName"]       = repoName;
-            responseBody["filesReceived"]  = fileSignatures.size();
-            responseBody["tarSize"]        = tarContent.size();
+            responseBody["repoName"]        = repoName;
+            responseBody["operationsTotal"] = operations.size();
+            responseBody["updates"]         = updates;
+            responseBody["deletes"]         = deletes;
+            responseBody["tarSize"]         = tarContent.size();
 
             if (ok) {
                responseBody["status"]  = "ok";
@@ -908,7 +950,7 @@ void HttpApi::registerRoutes(
 
          } catch (const nlohmann::json::parse_error &e) {
             res.status = 400;
-            res.set_content(std::string("Invalid JSON: ") + e.what(), "text/plain");
+            res.set_content(std::string("Invalid JSON in 'operations': ") + e.what(), "text/plain");
          } catch (const std::exception &e) {
             res.status = 500;
             std::cerr << "Error processing push: " << e.what() << std::endl;
@@ -916,6 +958,7 @@ void HttpApi::registerRoutes(
          }
       }
    );
+
 
    /***********************************   AGREGAR UN USUARIO A UN ARCHIVO  ***********************************/
    server_.Post("/repo/file/add_user",

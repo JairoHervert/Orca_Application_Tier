@@ -123,4 +123,65 @@ public:
       }
    }
 
+
+   bool verify_signature_ecdsa_p256_over_string(
+      const std::string &message,
+      const std::string &signatureB64,
+      const std::string &publicKeyB64) override
+   {
+      try {
+         CryptoPP::AutoSeededRandomPool rng;
+
+         // 1. Decodificar clave pública DER desde Base64
+         std::string publicKeyDER;
+         CryptoPP::StringSource ssKey(publicKeyB64, true,
+            new CryptoPP::Base64Decoder(
+               new CryptoPP::StringSink(publicKeyDER)
+            )
+         );
+
+         CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey publicKey;
+         CryptoPP::StringSource ssLoad(publicKeyDER, true);
+         publicKey.Load(ssLoad);
+
+         if (!publicKey.Validate(rng, 3)) {
+            std::cerr << "Invalid ECDSA public key (over_string)\n";
+            return false;
+         }
+
+         // 2. Decodificar firma desde Base64
+         std::string signature;
+         CryptoPP::StringSource ssSig(signatureB64, true,
+            new CryptoPP::Base64Decoder(
+               new CryptoPP::StringSink(signature)
+            )
+         );
+
+         // 3. Verificar la firma sobre *message* tal cual (texto Base64)
+         CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::Verifier verifier(publicKey);
+
+         bool result = verifier.VerifyMessage(
+            reinterpret_cast<const CryptoPP::byte*>(message.data()),
+            message.size(),
+            reinterpret_cast<const CryptoPP::byte*>(signature.data()),
+            signature.size()
+         );
+
+         if (result) {
+            std::cout << "✓ Signature over string verified\n";
+         } else {
+            std::cerr << "✗ Invalid signature over string\n";
+         }
+
+         return result;
+      }
+      catch (const CryptoPP::Exception &e) {
+         std::cerr << "CryptoPP error verifying signature over string: " << e.what() << std::endl;
+         return false;
+      }
+      catch (const std::exception &e) {
+         std::cerr << "Error verifying signature over string: " << e.what() << std::endl;
+         return false;
+      }
+   }
 };

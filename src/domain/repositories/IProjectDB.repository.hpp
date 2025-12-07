@@ -52,4 +52,6 @@ public:
 
    virtual std::vector<Commit> getCommits() = 0;
 
+
+   virtual bool deleteFileFromProject(const std::string &relativePath, int idProject) = 0;
 };

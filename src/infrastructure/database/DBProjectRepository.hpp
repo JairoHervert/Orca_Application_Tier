@@ -403,6 +403,43 @@ public:
       return commits;
    }
 
+   bool deleteFileFromProject(const std::string &relativePath, int idProject) override {
+      try {
+         // 1. Buscar el archivo para obtener su idsourcefile
+         auto fileOpt = existsFileInProject(relativePath, idProject);
+         if (!fileOpt.has_value()) {
+            // No hay nada que borrar en la BDD
+            return false;
+         }
+
+         int idFile = fileOpt->idsourcefile;
+
+         // 2. Eliminar primero los permisos asociados en filepermissions
+         {
+            soci::statement stPerm = (sql_.prepare <<
+               "DELETE FROM filepermissions WHERE idsourcefile = :idFile",
+               soci::use(idFile, "idFile")
+            );
+            stPerm.execute(true);
+         }
+
+         // 3. Eliminar el registro en sourcefiles
+         soci::statement stFile = (sql_.prepare <<
+            "DELETE FROM sourcefiles WHERE idsourcefile = :idFile",
+            soci::use(idFile, "idFile")
+         );
+         stFile.execute(true);
+
+         std::size_t affected = stFile.get_affected_rows();
+         return affected == 1;
+
+      } catch (const std::exception &e) {
+         std::cerr << "[DBProjectRepository::deleteFileFromProject] "
+                   << e.what() << "\n";
+         return false;
+      }
+   }
+
 private:
    soci::session &sql_;
 };
