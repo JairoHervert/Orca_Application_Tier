@@ -53,6 +53,12 @@ public:
          if (!userOpt.has_value())
             throw std::runtime_error("User with email " + userEmail + " does not exist");
 
+         // Verificar que el usuario a agregar sea activo y verificado
+         if (!userRepository_.isStatusActive(userEmail))
+            throw std::runtime_error("User with email " + userEmail + " is not active");
+         if (!userRepository_.isVerifiedUser(userEmail))
+            throw std::runtime_error("User with email " + userEmail + " is not verified");
+
 
          // === 4. Archivo en el proyecto ===
          auto fileOpt = projectRepositoryDB_.existsFileInProject(fileName, projectOpt->idProject);

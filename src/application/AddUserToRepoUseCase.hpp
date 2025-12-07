@@ -53,6 +53,12 @@ public:
          if (!userOpt.has_value())
             throw std::runtime_error("User with email " + userEmail + " does not exist");
 
+         // Verificar que el usuario a agregar sea activo y verificado
+         if (!userRepository_.isStatusActive(userEmail))
+            throw std::runtime_error("User with email " + userEmail + " is not active");
+         if (!userRepository_.isVerifiedUser(userEmail))
+            throw std::runtime_error("User with email " + userEmail + " is not verified");
+
          // Verificar que no exista ya la relacion entre el usuario y el proyecto
          if (projectRepositoryDB_.existsUserInProject(projectOpt->idProject, userOpt->idUser))
             throw std::runtime_error("User with email " + userEmail + " is already added to project " + projectName);

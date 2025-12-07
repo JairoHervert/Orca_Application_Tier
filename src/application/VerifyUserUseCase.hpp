@@ -50,6 +50,10 @@ public:
          if (!userRepository_.isStatusActive(targetUserEmail))
             throw std::runtime_error("User: " + targetUserEmail + " is not active");
 
+         // si ya esta verificado, no hacer nada
+         if (userRepository_.isVerifiedUser(targetUserEmail))
+            throw std::runtime_error("User " + targetUserEmail + " is already verified");
+
          // Cambiar el status del usuario objetivo
          bool ok = userRepository_.verifyUserEmail(targetUserEmail);
 
