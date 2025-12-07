@@ -30,4 +30,7 @@ public:
 
    virtual std::ostringstream getCipherAsStream(const std::string &name) = 0;
 
+   virtual std::vector<std::filesystem::path> listAllFiles(const std::string &repoName) = 0;
+
+   virtual std::string getFullPath(const std::string &repoName, const std::string &relativePath) = 0;
 };

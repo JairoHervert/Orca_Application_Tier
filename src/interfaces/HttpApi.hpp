@@ -14,6 +14,7 @@
 #include "../application/AddUserToRepoUseCase.hpp"
 #include "../application/CloneRepositoryUseCase.hpp"
 #include "../application/DecipherRepositoryUseCase.hpp"
+#include "../application/HashFilesUseCase.hpp"
 
 /////////  caso de uso exclusivo para pruebas  //////////////////////
 #include "../application/testUseCase.hpp"
@@ -36,6 +37,7 @@ public:
       AddUserToRepoUseCase &addUserToRepoUseCase,
       CloneRepositoryUseCase &cloneRepoUseCase,
       DecipherRepositoryUseCase &decipherRepoUseCase,
+      HashFilesUseCase &hashRepoFilesCreate,
 
 
       TestUseCase &testUseCase  // Caso de uso exclusivo para pruebas

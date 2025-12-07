@@ -208,6 +208,34 @@ public:
       return getFileAsStream(cipherPath_.string(), name);
    }
 
+   std::vector<std::filesystem::path> listAllFiles(const std::string &repoName) override {
+      std::filesystem::path repoPath = rootPath_ / repoName;
+      
+      if (!std::filesystem::exists(repoPath))
+         throw std::runtime_error("Repository does not exist: " + repoName);
+      
+      if (!std::filesystem::is_directory(repoPath))
+         throw std::runtime_error("Path is not a directory: " + repoName);
+      
+      std::vector<std::filesystem::path> files;
+      
+      // Recorrer recursivamente todos los archivos
+      for (const auto& entry : std::filesystem::recursive_directory_iterator(repoPath)) {
+         if (entry.is_regular_file()) {
+            // Guardar la ruta relativa al repositorio
+            std::filesystem::path relativePath = std::filesystem::relative(entry.path(), repoPath);
+            files.push_back(relativePath);
+         }
+      }
+      
+      return files;
+   }
+
+   std::string getFullPath(const std::string &repoName, const std::string &relativePath) override {
+      std::filesystem::path fullPath = rootPath_ / repoName / relativePath;
+      return fullPath.string();
+   }
+
 private:
    std::filesystem::path rootPath_;
    std::filesystem::path cipherPath_;

@@ -12,6 +12,7 @@
 #include "infrastructure/storage/FilesystemStorage.hpp"
 #include "infrastructure/database/DBProjectRepository.hpp"
 #include "infrastructure/crypto/ProtectRepo.hpp"
+#include "infrastructure/crypto/PushRepoVerifyCrypto.hpp"
 
 // Casos de uso
 #include "application/CreateRepositoryUseCase.hpp"
@@ -25,6 +26,7 @@
 #include "application/AddUserToRepoUseCase.hpp"
 #include "application/CloneRepositoryUseCase.hpp"
 #include "application/DecipherRepositoryUseCase.hpp"
+#include "application/HashFilesUseCase.hpp"
 
 //////////////// Caso de uso exclusivo para pruebas ////////////////////////
 #include "application/testUseCase.hpp"
@@ -49,6 +51,7 @@ int main() {
       DBUserRepository userRepo{sql};
       DBProjectRepository projectRepoDB{sql};
       ProtectRepoCrypto repoCrypto{};
+      PushRepoVerifyCrypto pushVerifyCrypto{};
 
       // 4. Casos de uso (aplicacion)
       CreateRepositoryUseCase createRepoUseCase{repoStore, userRepo, projectRepoDB};
@@ -62,6 +65,7 @@ int main() {
       AddUserToRepoUseCase addUserToRepoUseCase{projectRepoDB, userRepo};
       CloneRepositoryUseCase cloneRepoUseCase{repoStore, userRepo, projectRepoDB};
       DecipherRepositoryUseCase decipherRepoUseCase{repoStore, userRepo, projectRepoDB};
+      HashFilesUseCase hashRepoFilesCreate{repoStore, projectRepoDB, userRepo, pushVerifyCrypto};
 
       ////////////////// Caso de uso exclusivo para pruebas ////////////////////////
       TestUseCase testUseCase{repoStore, repoCrypto};
@@ -82,6 +86,7 @@ int main() {
          addUserToRepoUseCase,
          cloneRepoUseCase,
          decipherRepoUseCase,
+         hashRepoFilesCreate,
 
          testUseCase  // Caso de uso exclusivo para pruebas
       );

@@ -19,6 +19,7 @@ void HttpApi::registerRoutes(
    AddUserToRepoUseCase &addUserToRepoUseCase,
    CloneRepositoryUseCase &cloneRepoUseCase,
    DecipherRepositoryUseCase &decipherRepoUseCase,
+   HashFilesUseCase &hashRepoFilesCreate,
 
    TestUseCase &testUseCase  // Caso de uso exclusivo para pruebas
 ) {
@@ -30,7 +31,10 @@ void HttpApi::registerRoutes(
          std::string argument = body["argument"].get<std::string>();
 
          // Ejecutar el caso de uso de prueba
+         std::cout << "Executing TestUseCase with argument: " << argument << std::endl;
          bool hecho = testUseCase.execute(argument);
+
+         std::cout << "TestUseCase execution result: " << (hecho ? "success" : "failure") << std::endl;
 
          if (hecho) {
             res.status = 200; // OK
@@ -748,6 +752,73 @@ void HttpApi::registerRoutes(
             res.status = 500;
             std::cout << "Unknown error occurred while sending ciphered repository." << std::endl;
             res.set_content("Internal error: Unknown error occurred", "text/plain");
+         }
+      }
+   );
+
+
+
+   /***********************************   OBTENER HASHES DE ARCHIVOS DE UN REPOSITORIO  ***********************************/
+   server_.Post("/repo/push/hash",
+      [&hashRepoFilesCreate](const httplib::Request& req, httplib::Response& res) {
+         try {
+            // 1. Verificar que haya body
+            if (req.body.empty()) {
+               res.status = 400;
+               res.set_content("Request body is empty", "text/plain");
+               return;
+            }
+
+            // 2. Parsear JSON del body
+            nlohmann::json body = nlohmann::json::parse(req.body);
+
+            // 3. Extraer campos necesarios
+            // if (!body.contains("repoName") || !body.contains("userEmail") || !body.contains("userPassword")) {
+            if (!body.contains("repoName")) {
+               res.status = 400;
+               res.set_content("Missing 'repoName', 'userEmail' or 'userPassword' field", "text/plain");
+               return;
+            }
+
+            std::string repoName = body["repoName"].get<std::string>();
+            // std::string userEmail = body["userEmail"].get<std::string>();
+            // std::string userPassword = body["userPassword"].get<std::string>();
+
+            // 4. Validaciones simples
+            // if (repoName.empty() || userEmail.empty() || userPassword.empty()) {
+            
+            if (repoName.empty()) {
+               res.status = 400;
+               res.set_content("Fields cannot be empty", "text/plain");
+               return;
+            }
+
+            // 5. Ejecutar caso de uso
+            std::map<std::string, std::string> fileHashes = hashRepoFilesCreate.execute(repoName, "userEmail", "userPassword");
+
+            // 6. Construir respuesta JSON
+            nlohmann::json responseBody;
+            responseBody["status"] = "ok";
+            responseBody["repository"] = repoName;
+            responseBody["files"] = nlohmann::json::object();
+
+            for (const auto& [path, hash] : fileHashes) {
+               responseBody["files"][path] = hash;
+            }
+
+            res.status = 200;
+            res.set_content(responseBody.dump(2), "application/json"); // dump(2) para formato legible
+            
+            std::cout << "File hashes generated for repository: " << repoName << std::endl;
+         }
+         catch (const nlohmann::json::parse_error &e) {
+            res.status = 400;
+            res.set_content(std::string("Invalid JSON: ") + e.what(), "text/plain");
+         }
+         catch (const std::exception &e) {
+            res.status = 500;
+            std::cout << "Error generating file hashes: " << e.what() << std::endl;
+            res.set_content(std::string("Internal error: ") + e.what(), "text/plain");
          }
       }
    );
