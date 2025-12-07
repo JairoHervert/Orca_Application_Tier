@@ -23,6 +23,7 @@ void HttpApi::registerRoutes(
    HashFilesUseCase &hashRepoFilesCreate,
    PushVerifyUseCase &pushVerifyUseCase,
    AddUserToFileUseCase &addUserToFileUseCase,
+   CommitsListUseCase &commitsListUseCase,
 
    TestUseCase &testUseCase  // Caso de uso exclusivo para pruebas
 ) {
@@ -990,6 +991,45 @@ void HttpApi::registerRoutes(
          } catch (const std::exception &e) {
             res.status = 500;
             std::cerr << "Error processing push: " << e.what() << std::endl;
+            res.set_content(std::string("Internal error: ") + e.what(), "text/plain");
+         }
+      }
+   );
+
+
+
+   /***********************************   Consultar la lista de commits  ***********************************/
+   server_.Get("/repo/commits",
+      [&commitsListUseCase](const httplib::Request& req, httplib::Response& res) {
+         try {
+            std::vector<Commit> commits = commitsListUseCase.execute();
+
+            nlohmann::json responseBody;
+            responseBody["status"]  = "ok";
+            responseBody["commits"] = nlohmann::json::array();
+
+            for (const auto& commit : commits) {
+               nlohmann::json commitJson;
+               commitJson["id"]          = commit.idcommits;
+               commitJson["author"]      = commit.iduser;
+               commitJson["file_id"]     = commit.idsourcefile;       // o null si no hay
+               commitJson["signature"]   = commit.digitalsignature;   // o null si no hay
+               commitJson["accepted"]    = commit.isaccepted;
+               commitJson["date"]        = commit.date;
+               commitJson["command"]     = commit.command;
+               commitJson["description"] = commit.description;
+
+               responseBody["commits"].push_back(commitJson);
+            }
+
+            res.status = 200;
+            res.set_content(responseBody.dump(2), "application/json");
+
+            std::cout << "Listed " << commits.size() << " commits successfully." << std::endl;
+         }
+         catch (const std::exception &e) {
+            res.status = 500;
+            std::cout << "Error listing commits: " << e.what() << std::endl;
             res.set_content(std::string("Internal error: ") + e.what(), "text/plain");
          }
       }

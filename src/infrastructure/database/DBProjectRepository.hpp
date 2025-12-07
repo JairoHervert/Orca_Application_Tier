@@ -345,7 +345,6 @@ public:
    }
 
 
-
    std::vector<Commit> getCommits() override {
       std::vector<Commit> commits;
 
@@ -353,7 +352,9 @@ public:
          soci::rowset<soci::row> rs = (
             sql_.prepare <<
                "SELECT idcommits, iduser, idsourcefile, digitalsignature, "
-               "       isaccepted, date, command, description "
+               "       isaccepted, "
+               "       DATE_FORMAT(date, '%Y-%m-%d %H:%i:%s') AS date_str, "
+               "       command, description "
                "FROM commits "
                "ORDER BY date DESC"
          );
@@ -378,8 +379,11 @@ public:
                c.digitalsignature = row.get<std::string>(3);
             }
 
-            c.isaccepted = row.get<int>(4) != 0;   // o row.get<bool>(4) si el mapeo lo permite
+            c.isaccepted = row.get<int>(4) != 0;
+
+            // Ahora columna 5 es un VARCHAR generado por DATE_FORMAT → std::string sin problemas
             c.date       = row.get<std::string>(5);
+
             c.command    = row.get<std::string>(6);
 
             // description puede ser NULL

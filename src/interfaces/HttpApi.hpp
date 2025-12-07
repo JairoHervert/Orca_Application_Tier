@@ -17,6 +17,7 @@
 #include "../application/HashFilesUseCase.hpp"
 #include "../application/PushVerifyUseCase.hpp"
 #include "../application/AddUserToFileUseCase.hpp"
+#include "../application/CommitsListUseCase.hpp"
 
 /////////  caso de uso exclusivo para pruebas  //////////////////////
 #include "../application/testUseCase.hpp"
@@ -42,6 +43,7 @@ public:
       HashFilesUseCase &hashRepoFilesCreate,
       PushVerifyUseCase &pushVerifyUseCase,
       AddUserToFileUseCase &addUserToFileUseCase,
+      CommitsListUseCase &commitsListUseCase,
 
 
       TestUseCase &testUseCase  // Caso de uso exclusivo para pruebas

@@ -29,6 +29,7 @@
 #include "application/HashFilesUseCase.hpp"
 #include "application/PushVerifyUseCase.hpp"
 #include "application/AddUserToFileUseCase.hpp"
+#include "application/CommitsListUseCase.hpp"
 
 //////////////// Caso de uso exclusivo para pruebas ////////////////////////
 #include "application/testUseCase.hpp"
@@ -70,6 +71,7 @@ int main() {
       HashFilesUseCase hashRepoFilesCreate{repoStore, projectRepoDB, userRepo, pushVerifyCrypto};
       PushVerifyUseCase pushVerifyUseCase{repoStore, projectRepoDB, userRepo, pushVerifyCrypto};
       AddUserToFileUseCase addUserToFileUseCase{projectRepoDB, userRepo};
+      CommitsListUseCase commitsListUseCase{projectRepoDB};
 
       ////////////////// Caso de uso exclusivo para pruebas ////////////////////////
       TestUseCase testUseCase{repoStore, repoCrypto};
@@ -93,6 +95,7 @@ int main() {
          hashRepoFilesCreate,
          pushVerifyUseCase,
          addUserToFileUseCase,
+         commitsListUseCase,
 
          testUseCase  // Caso de uso exclusivo para pruebas
       );
