@@ -1,6 +1,7 @@
 #include <iostream>
 #include "HttpApi.hpp"
 #include "../third_party/json.hpp"
+#include <fstream>
 
 HttpApi::HttpApi(const char* certPath, const char* keyPath)
    : server_(certPath, keyPath) {
@@ -20,6 +21,7 @@ void HttpApi::registerRoutes(
    CloneRepositoryUseCase &cloneRepoUseCase,
    DecipherRepositoryUseCase &decipherRepoUseCase,
    HashFilesUseCase &hashRepoFilesCreate,
+   PushVerifyUseCase &pushVerifyUseCase,
 
    TestUseCase &testUseCase  // Caso de uso exclusivo para pruebas
 ) {
@@ -757,7 +759,6 @@ void HttpApi::registerRoutes(
    );
 
 
-
    /***********************************   OBTENER HASHES DE ARCHIVOS DE UN REPOSITORIO  ***********************************/
    server_.Post("/repo/push/hash",
       [&hashRepoFilesCreate](const httplib::Request& req, httplib::Response& res) {
@@ -773,21 +774,18 @@ void HttpApi::registerRoutes(
             nlohmann::json body = nlohmann::json::parse(req.body);
 
             // 3. Extraer campos necesarios
-            // if (!body.contains("repoName") || !body.contains("userEmail") || !body.contains("userPassword")) {
-            if (!body.contains("repoName")) {
+            if (!body.contains("repoName") || !body.contains("userEmail") || !body.contains("userPassword")) {
                res.status = 400;
                res.set_content("Missing 'repoName', 'userEmail' or 'userPassword' field", "text/plain");
                return;
             }
 
             std::string repoName = body["repoName"].get<std::string>();
-            // std::string userEmail = body["userEmail"].get<std::string>();
-            // std::string userPassword = body["userPassword"].get<std::string>();
+            std::string userEmail = body["userEmail"].get<std::string>();
+            std::string userPassword = body["userPassword"].get<std::string>();
 
             // 4. Validaciones simples
-            // if (repoName.empty() || userEmail.empty() || userPassword.empty()) {
-            
-            if (repoName.empty()) {
+            if (repoName.empty() || userEmail.empty() || userPassword.empty()) {
                res.status = 400;
                res.set_content("Fields cannot be empty", "text/plain");
                return;
@@ -822,6 +820,102 @@ void HttpApi::registerRoutes(
          }
       }
    );
+
+
+   /***********************************   PUSH: RECIBIR ARCHIVOS MODIFICADOS  ***********************************/
+   server_.Post("/repo/push/upload",
+      [&pushVerifyUseCase](const httplib::Request& req, httplib::Response& res) {
+         try {
+            if (!req.is_multipart_form_data()) {
+               res.status = 400;
+               res.set_content("Expected multipart/form-data", "text/plain");
+               return;
+            }
+
+            auto get_text_field = [&](const std::string &name) -> std::string {
+               if (req.has_param(name.c_str())) {
+                  return req.get_param_value(name.c_str());
+               } else if (req.has_file(name.c_str())) {
+                  auto f = req.get_file_value(name.c_str());
+                  return f.content;
+               }
+               return "";
+            };
+
+            std::string repoName       = get_text_field("repoName");
+            std::string userEmail      = get_text_field("userEmail");
+            std::string userPassword   = get_text_field("userPassword");
+            std::string signaturesJson = get_text_field("signatures");
+
+            if (repoName.empty() || userEmail.empty() || userPassword.empty() || signaturesJson.empty()) {
+               res.status = 400;
+               res.set_content("Missing required fields", "text/plain");
+               return;
+            }
+
+            // 1) Parsear JSON de firmas -> map
+            nlohmann::json signatures = nlohmann::json::parse(signaturesJson);
+
+            std::map<std::string, std::string> fileSignatures;
+            for (auto &item : signatures.items()) {
+               const std::string &path         = item.key();
+               const std::string &signatureB64 = item.value().get<std::string>();
+               fileSignatures[path] = signatureB64;
+            }
+
+            // 2) Extraer archivo tar (pero sin guardarlo aquí)
+            if (!req.has_file("tarFile")) {
+               res.status = 400;
+               res.set_content("Missing 'tarFile' field", "text/plain");
+               return;
+            }
+
+            auto tarFile = req.get_file_value("tarFile");
+            std::string tarFilename = tarFile.filename;      // "cambios.tar"
+            std::string tarContent  = std::move(tarFile.content); // binario
+
+            std::cout << "✓ Archivo .tar recibido en memoria: " << tarFilename << " (" << tarContent.size() << " bytes)" << std::endl;
+
+            // 3) Llamar al caso de uso: él se encargará de guardar el tar, descomprimir, verificar, etc.
+            bool ok = pushVerifyUseCase.execute(
+               userEmail,
+               userPassword,
+               repoName,
+               tarFilename,
+               tarContent,
+               fileSignatures
+            );
+
+            // 4) Respuesta
+            nlohmann::json responseBody;
+            responseBody["repoName"]       = repoName;
+            responseBody["filesReceived"]  = fileSignatures.size();
+            responseBody["tarSize"]        = tarContent.size();
+
+            if (ok) {
+               responseBody["status"]  = "ok";
+               responseBody["message"] = "Push verified and applied successfully";
+               res.status = 200;
+            } else {
+               responseBody["status"]  = "rejected";
+               responseBody["message"] = "Push rejected due to invalid signatures or permissions";
+               res.status = 400;
+            }
+
+            res.set_content(responseBody.dump(2), "application/json");
+
+         } catch (const nlohmann::json::parse_error &e) {
+            res.status = 400;
+            res.set_content(std::string("Invalid JSON: ") + e.what(), "text/plain");
+         } catch (const std::exception &e) {
+            res.status = 500;
+            std::cerr << "Error processing push: " << e.what() << std::endl;
+            res.set_content(std::string("Internal error: ") + e.what(), "text/plain");
+         }
+      }
+   );
+
+
 }
 
 void HttpApi::listen(const char* host, int port) {

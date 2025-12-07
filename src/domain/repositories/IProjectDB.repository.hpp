@@ -2,6 +2,7 @@
 #include <optional>
 #include <string>
 #include "../entities/Repository.entity.hpp"
+#include "../entities/SourceFileDB.entity.hpp"
 
 class IProjectRepositoryDB {
 public:
@@ -27,5 +28,13 @@ public:
    virtual bool existsRepoAlias(const std::string &projectAlias) = 0;
 
    virtual bool existsUserInCipherProject(const std::string &projectAlias, int idUser) = 0;
+
+
+   /************* Tabla sourcefiles y filepermissions *************/
+   virtual std::optional<SourceFileDB> existsFileInProject(const std::string &relativePath, int idProject) = 0;
+   virtual bool addFileToProject(const std::string &relativePath, int idProject) = 0;
+
+   virtual bool existsUserFilePermission(int idUser, int idFile) = 0;
+   virtual bool addUserFilePermission(int idUser, int idFile) = 0;
 
 };

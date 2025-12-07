@@ -33,4 +33,22 @@ public:
    virtual std::vector<std::filesystem::path> listAllFiles(const std::string &repoName) = 0;
 
    virtual std::string getFullPath(const std::string &repoName, const std::string &relativePath) = 0;
+
+   // === NUEVOS MÉTODOS PARA WORKSPACE ===
+   
+   // Guardar archivo .tar en workspace
+   virtual std::filesystem::path saveTarToWorkspace(const std::string &tarContent, const std::string &filename) = 0;
+   
+   // Extraer .tar en workspace
+   virtual std::filesystem::path extractTarInWorkspace(const std::string &tarFilename) = 0;
+   
+   // Limpiar archivos temporales del workspace
+   virtual bool cleanWorkspace(const std::string &identifier) = 0;
+   
+   // Obtener ruta completa de un archivo en workspace
+   virtual std::string getWorkspacePath(const std::string &relativePath) = 0;
+
+   // Copiar un único archivo desde workspace al repo real
+   virtual void updateFileFromWorkspace(const std::string &repoName, const std::filesystem::path &extractedBase, const std::filesystem::path &relativePath) = 0;
+
 };

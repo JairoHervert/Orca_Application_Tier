@@ -206,6 +206,96 @@ public:
       }
    }
 
+
+   /************* Tabla sourcefiles y filepermissions *************/
+   std::optional<SourceFileDB> existsFileInProject(const std::string &relativePath, int idProject) {
+      try {
+         soci::rowset<soci::row> rs = (
+            sql_.prepare
+               << "SELECT idsourcefile, idproject, route "
+                  "FROM sourcefiles "
+                  "WHERE route = :relativePath AND idproject = :idProject "
+                  "LIMIT 1",
+               soci::use(relativePath, "relativePath"),
+               soci::use(idProject,    "idProject")
+         );
+
+         auto it = rs.begin();
+         if (it == rs.end()) {
+            // No hay filas → no existe el archivo en ese proyecto
+            return std::nullopt;
+         }
+
+         const soci::row &row = *it;
+
+         SourceFileDB file;
+         file.idsourcefile = row.get<int>(0);              // idsourcefile
+         file.idproject    = row.get<int>(1);              // idproject
+         file.route        = row.get<std::string>(2);      // route
+
+         return file;   // std::optional<SopurceFileDB> con valor
+
+      } catch (const std::exception &e) {
+         std::cerr << "[DBProjectRepository::existsFileInProject] " << e.what() << "\n";
+         return std::nullopt;
+      }
+   }
+
+   bool addFileToProject(const std::string &relativePath, int idProject) override {
+      try {
+         soci::statement st = (sql_.prepare <<
+            "INSERT INTO sourcefiles (route, idproject) "
+            "VALUES (:relativePath, :idProject)",
+            soci::use(relativePath, "relativePath"),
+            soci::use(idProject,    "idProject")
+         );
+         st.execute(true);
+         std::size_t affected = st.get_affected_rows();
+         return affected == 1;
+
+      } catch (const std::exception &e) {
+         std::cerr << "[DBProjectRepository::addFileToProject] " << e.what() << "\n";
+         return false;
+      }
+   }
+
+
+   bool existsUserFilePermission(int idUser, int idFile) override {
+      try {
+         int count = 0;
+         sql_ << "SELECT COUNT(*) FROM filepermissions WHERE iduser = :idUser AND idsourcefile = :idsourcefile",
+            soci::into(count),
+            soci::use(idUser, "idUser"),
+            soci::use(idFile, "idsourcefile");
+
+         return count > 0;
+
+      } catch (const std::exception &e) {
+         std::cerr << "[DBProjectRepository::existsUserFilePermission] " << e.what() << "\n";
+         return false;
+      }
+   }
+
+   bool addUserFilePermission(int idUser, int idFile) override {
+      try {
+         soci::statement st = (sql_.prepare <<
+            "INSERT INTO filepermissions (iduser, idsourcefile) "
+            "VALUES (:idUser, :idsourcefile)",
+            soci::use(idUser, "idUser"),
+            soci::use(idFile, "idsourcefile")
+         );
+         st.execute(true);
+         std::size_t affected = st.get_affected_rows();
+         return affected == 1;
+
+      } catch (const std::exception &e) {
+         std::cerr << "[DBProjectRepository::addUserFilePermission] " << e.what() << "\n";
+         return false;
+      }
+   }
+
+
+
 private:
    soci::session &sql_;
 };

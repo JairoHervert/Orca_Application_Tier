@@ -27,6 +27,7 @@
 #include "application/CloneRepositoryUseCase.hpp"
 #include "application/DecipherRepositoryUseCase.hpp"
 #include "application/HashFilesUseCase.hpp"
+#include "application/PushVerifyUseCase.hpp"
 
 //////////////// Caso de uso exclusivo para pruebas ////////////////////////
 #include "application/testUseCase.hpp"
@@ -47,7 +48,7 @@ int main() {
       soci::session sql(soci::mysql, connStr);
 
       // 3. Infraestructura para repositorios
-      FilesystemStorage repoStore{configEnvs.repositoriesRoot, configEnvs.repositoriesCipher};
+      FilesystemStorage repoStore{configEnvs.repositoriesRoot, configEnvs.repositoriesCipher, configEnvs.repositoriesWorkspace};
       DBUserRepository userRepo{sql};
       DBProjectRepository projectRepoDB{sql};
       ProtectRepoCrypto repoCrypto{};
@@ -66,6 +67,7 @@ int main() {
       CloneRepositoryUseCase cloneRepoUseCase{repoStore, userRepo, projectRepoDB};
       DecipherRepositoryUseCase decipherRepoUseCase{repoStore, userRepo, projectRepoDB};
       HashFilesUseCase hashRepoFilesCreate{repoStore, projectRepoDB, userRepo, pushVerifyCrypto};
+      PushVerifyUseCase pushVerifyUseCase{repoStore, projectRepoDB, userRepo, pushVerifyCrypto};
 
       ////////////////// Caso de uso exclusivo para pruebas ////////////////////////
       TestUseCase testUseCase{repoStore, repoCrypto};
@@ -87,6 +89,7 @@ int main() {
          cloneRepoUseCase,
          decipherRepoUseCase,
          hashRepoFilesCreate,
+         pushVerifyUseCase,
 
          testUseCase  // Caso de uso exclusivo para pruebas
       );

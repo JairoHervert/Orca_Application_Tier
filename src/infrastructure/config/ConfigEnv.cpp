@@ -36,6 +36,7 @@ ConfigEnv loadConfigFromEnv() {
 
    cfg.repositoriesRoot = getEnvOrThrow("REPOSITORIES_ROOT");
    cfg.repositoriesCipher = getEnvOrThrow("REPOSITORIES_CIPHER");
+   cfg.repositoriesWorkspace = getEnvOrThrow("REPOSITORIES_WORKSPACE");
 
    // Configuracion de la base de datos
    cfg.dbHost = getEnvOrThrow("DB_HOST");

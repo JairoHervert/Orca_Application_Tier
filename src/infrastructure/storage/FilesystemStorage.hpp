@@ -9,8 +9,8 @@
 
 class FilesystemStorage : public IRepositoryStore {
 public:
-   explicit FilesystemStorage(const std::filesystem::path& repositoriesRoot, const std::filesystem::path& cipherPath)
-      : rootPath_(repositoriesRoot), cipherPath_(cipherPath) {
+   explicit FilesystemStorage(const std::filesystem::path& repositoriesRoot, const std::filesystem::path& cipherPath, const std::filesystem::path& workspacePath)
+      : rootPath_(repositoriesRoot), cipherPath_(cipherPath), workspacePath_(workspacePath) {
       // Si la carpeta raíz no existe, crearla
       if (!std::filesystem::exists(rootPath_)) {
          std::filesystem::create_directories(rootPath_);
@@ -19,6 +19,11 @@ public:
       // Si la carpeta de cifrado no existe, crearla
       if (!std::filesystem::exists(cipherPath_)) {
          std::filesystem::create_directories(cipherPath_);
+      }
+
+      // Si la carpeta de workspace no existe, crearla
+      if (!std::filesystem::exists(workspacePath_)) {
+         std::filesystem::create_directories(workspacePath_);
       }
    }
 
@@ -236,7 +241,156 @@ public:
       return fullPath.string();
    }
 
+   // === IMPLEMENTACIÓN DE MÉTODOS PARA WORKSPACE ===
+
+   // Guardar archivo .tar recibido en workspace
+   std::filesystem::path saveTarToWorkspace(const std::string &tarContent, const std::string &filename) override {
+      std::filesystem::path tarPath = workspacePath_ / filename;
+      
+      try {
+         // Crear directorio workspace si no existe
+         if (!std::filesystem::exists(workspacePath_)) {
+               std::filesystem::create_directories(workspacePath_);
+         }
+         
+         // Guardar el contenido del tar
+         std::ofstream outFile(tarPath, std::ios::binary | std::ios::trunc);
+         if (!outFile.is_open()) {
+               throw std::runtime_error("Could not open file for writing: " + tarPath.string());
+         }
+         
+         outFile.write(tarContent.c_str(), tarContent.length());
+         outFile.close();
+         
+         if (!outFile.good()) {
+               throw std::runtime_error("Error writing tar file: " + tarPath.string());
+         }
+         
+         std::cout << "✓ Tar saved to workspace: " << tarPath.string() 
+                     << " (" << tarContent.length() << " bytes)" << std::endl;
+         
+         return tarPath;
+         
+      } catch (const std::exception &e) {
+         throw std::runtime_error("Error saving tar to workspace: " + std::string(e.what()));
+      }
+   }
+
+   // Extraer .tar en workspace
+   std::filesystem::path extractTarInWorkspace(const std::string &tarFilename) override {
+      std::filesystem::path tarPath = workspacePath_ / tarFilename;
+      
+      if (!std::filesystem::exists(tarPath)) {
+         throw std::runtime_error("Tar file does not exist in workspace: " + tarPath.string());
+      }
+      
+      if (!std::filesystem::is_regular_file(tarPath)) {
+         throw std::runtime_error("Path is not a regular file: " + tarPath.string());
+      }
+      
+      // Crear carpeta de extracción con el nombre del tar (sin extensión)
+      std::string extractDirName = tarPath.stem().string() + "_extracted";
+      std::filesystem::path extractPath = workspacePath_ / extractDirName;
+      
+      if (std::filesystem::exists(extractPath)) {
+         // Si ya existe, eliminarla primero
+         std::filesystem::remove_all(extractPath);
+      }
+      
+      // Crear directorio de extracción
+      std::filesystem::create_directories(extractPath);
+      
+      // Extraer el tar
+      std::string command = "tar -xzf \"" + tarPath.string() + "\" -C \"" + extractPath.string() + "\"";
+      
+      int result = std::system(command.c_str());
+      if (result != 0) {
+         throw std::runtime_error("Failed to extract tar archive: " + tarPath.string());
+      }
+      
+      // Verificar que se extrajo algo
+      if (!std::filesystem::exists(extractPath) || std::filesystem::is_empty(extractPath)) {
+         throw std::runtime_error("Extraction failed or resulted in empty directory: " + extractPath.string());
+      }
+      
+      std::cout << "✓ Tar extracted to: " << extractPath.string() << std::endl;
+      
+      return extractPath;
+   }
+
+   // Limpiar archivos temporales del workspace
+   bool cleanWorkspace(const std::string &identifier) override {
+      try {
+         bool cleaned = false;
+         
+         // Buscar y eliminar archivos/carpetas que contengan el identificador
+         for (const auto& entry : std::filesystem::directory_iterator(workspacePath_)) {
+               std::string filename = entry.path().filename().string();
+               
+               // Si el nombre contiene el identificador, eliminarlo
+               if (filename.find(identifier) != std::string::npos) {
+                  if (std::filesystem::is_directory(entry.path())) {
+                     std::filesystem::remove_all(entry.path());
+                     std::cout << "✓ Removed workspace directory: " << entry.path() << std::endl;
+                  } else {
+                     std::filesystem::remove(entry.path());
+                     std::cout << "✓ Removed workspace file: " << entry.path() << std::endl;
+                  }
+                  cleaned = true;
+               }
+         }
+         
+         return cleaned;
+         
+      } catch (const std::exception &e) {
+         std::cerr << "Error cleaning workspace: " << e.what() << std::endl;
+         return false;
+      }
+   }
+
+   // Obtener ruta completa en workspace
+   std::string getWorkspacePath(const std::string &relativePath) override {
+      std::filesystem::path fullPath = workspacePath_ / relativePath;
+      return fullPath.string();
+   }
+
+
+
+   void updateFileFromWorkspace(const std::string &repoName, const std::filesystem::path &extractedBase, const std::filesystem::path &relativePath) override {
+      try {
+         // src: carpeta donde se extrajo el tar
+         std::filesystem::path srcPath = extractedBase / relativePath;
+
+         if (!std::filesystem::exists(srcPath) || !std::filesystem::is_regular_file(srcPath)) {
+            throw std::runtime_error("Source file does not exist in workspace: " + srcPath.string());
+         }
+
+         // dst: ruta final del archivo en el repo real
+         std::filesystem::path dstPath =
+            std::filesystem::path(getFullPath(repoName, relativePath.string()));
+
+         // crear directorios padre si no existen
+         std::filesystem::create_directories(dstPath.parent_path());
+
+         // copiar el archivo, sobreescribiendo
+         std::filesystem::copy_file(
+            srcPath,
+            dstPath,
+            std::filesystem::copy_options::overwrite_existing
+         );
+
+         std::cout << "✓ Updated repo file: " << dstPath.string() << std::endl;
+
+      } catch (const std::exception &e) {
+         throw std::runtime_error(
+            std::string("Error updating file from workspace: ") + e.what()
+         );
+      }
+   }
+
+
 private:
    std::filesystem::path rootPath_;
    std::filesystem::path cipherPath_;
+   std::filesystem::path workspacePath_;
 };
