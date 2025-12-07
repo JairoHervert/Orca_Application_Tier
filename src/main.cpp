@@ -57,12 +57,12 @@ int main() {
 
       // 4. Casos de uso (aplicacion)
       CreateRepositoryUseCase createRepoUseCase{repoStore, userRepo, projectRepoDB};
-      CreateUserUseCase createUserUseCase{userRepo};
-      SavePublicKeyECDSAUseCase saveKPubUseCase{userRepo};
-      ChangeLevelUserUseCase changeLevelUserUseCase{userRepo};
-      VerifyUserUseCase verifyUserUseCase{userRepo};
-      ChangeStatusUserUseCase changeUserStatusUseCase{userRepo};
-      SavePublicKeyRSAUseCase saveKPubRSAUseCase{userRepo};
+      CreateUserUseCase createUserUseCase{userRepo, projectRepoDB};
+      SavePublicKeyECDSAUseCase saveKPubUseCase{userRepo, projectRepoDB};
+      ChangeLevelUserUseCase changeLevelUserUseCase{userRepo, projectRepoDB};
+      VerifyUserUseCase verifyUserUseCase{userRepo, projectRepoDB};
+      ChangeStatusUserUseCase changeUserStatusUseCase{userRepo, projectRepoDB};
+      SavePublicKeyRSAUseCase saveKPubRSAUseCase{userRepo, projectRepoDB};
       CipherRepositoryUseCase cipherRepoUseCase{repoStore, projectRepoDB, userRepo, repoCrypto};
       AddUserToRepoUseCase addUserToRepoUseCase{projectRepoDB, userRepo};
       CloneRepositoryUseCase cloneRepoUseCase{repoStore, userRepo, projectRepoDB};

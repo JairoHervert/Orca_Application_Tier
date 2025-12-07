@@ -1,8 +1,10 @@
 #pragma once
 #include <optional>
 #include <string>
+#include <vector>
 #include "../entities/Repository.entity.hpp"
 #include "../entities/SourceFileDB.entity.hpp"
+#include "../entities/Commit.entity.hpp"
 
 class IProjectRepositoryDB {
 public:
@@ -36,5 +38,18 @@ public:
 
    virtual bool existsUserFilePermission(int idUser, int idFile) = 0;
    virtual bool addUserFilePermission(int idUser, int idFile) = 0;
+
+
+   /************* acciones sobre la tabla de commits *************/
+   virtual bool addCommit(
+      int idUser,
+      std::optional<int> idFile,
+      std::optional<std::string> signature,
+      bool isAccepted,
+      const std::string &command,
+      const std::string &description) = 0;
+
+
+   virtual std::vector<Commit> getCommits() = 0;
 
 };

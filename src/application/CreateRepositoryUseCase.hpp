@@ -22,44 +22,68 @@ public:
 
    Repository execute(const std::string &repoName, const std::string &userEmail, const std::string &userPassword) {
 
-      // 1.0. Validar que el usuario que desea crear el repo exista
+      // se declaran aquí para poder usarlas en el bloque catch
       auto ownerOpt = userRepository_.findByEmail(userEmail);
-      if (!ownerOpt.has_value()) 
-         throw std::runtime_error("User: " + userEmail + " not found");
+      try {
+         // 1.0. Validar que el usuario que desea crear el repo exista
+         if (!ownerOpt.has_value()) 
+            throw std::runtime_error("User: " + userEmail + " not found");
 
-      // 1.1. Validar que el status del usuario sea activo (esta trabajando actualmente)
-      if (!userRepository_.isStatusActive(userEmail))
-         throw std::runtime_error("User: " + userEmail + " is not active");
+         // 1.1. Validar que el status del usuario sea activo (esta trabajando actualmente)
+         if (!userRepository_.isStatusActive(userEmail))
+            throw std::runtime_error("User: " + userEmail + " is not active");
 
-      // 1.2. Validar que el usuario esté verificado
-      if (!userRepository_.isVerifiedUser(userEmail))
-         throw std::runtime_error("User with email " + userEmail + " is not verified");
+         // 1.2. Validar que el usuario esté verificado
+         if (!userRepository_.isVerifiedUser(userEmail))
+            throw std::runtime_error("User with email " + userEmail + " is not verified");
 
-      // 1.3. Validar que el password sea correcto
-      if (!userRepository_.isValidPassword(userEmail, userPassword))
-         throw std::runtime_error("Invalid password for user: " + userEmail);
+         // 1.3. Validar que el password sea correcto
+         if (!userRepository_.isValidPassword(userEmail, userPassword))
+            throw std::runtime_error("Invalid password for user: " + userEmail);
 
-      // 1.4. Validar que el usuario tenga permisos para crear repositorios (Leader o Senior)
-      if (!userRepository_.isLeaderUser(userEmail) && !userRepository_.isSeniorUser(userEmail))
-         throw std::runtime_error(userEmail + " is not authorized to create a repository");
- 
-      // No permitir duplicados: Buscar en la base de datos si ya existe un repo con ese nombre
-      auto existingDB = projectRepositoryDB_.findByName(repoName);
-      if (existingDB.has_value())
-         throw  std::runtime_error("Repository " + repoName + " already exists in DB");
+         // 1.4. Validar que el usuario tenga permisos para crear repositorios (Leader o Senior)
+         if (!userRepository_.isLeaderUser(userEmail) && !userRepository_.isSeniorUser(userEmail))
+            throw std::runtime_error(userEmail + " is not authorized to create a repository");
+   
+         // No permitir duplicados: Buscar en la base de datos si ya existe un repo con ese nombre
+         auto existingDB = projectRepositoryDB_.findByName(repoName);
+         if (existingDB.has_value())
+            throw  std::runtime_error("Repository " + repoName + " already exists in DB");
 
-      // No permitir duplicados: Buscar en el storage si ya existe un repo con ese nombre
-      auto existing = repositoryStore_.findByName(repoName);
-      if (existing.has_value()) 
-         throw std::runtime_error("Repository" + repoName + " already exists in storage");
+         // No permitir duplicados: Buscar en el storage si ya existe un repo con ese nombre
+         auto existing = repositoryStore_.findByName(repoName);
+         if (existing.has_value()) 
+            throw std::runtime_error("Repository" + repoName + " already exists in storage");
 
 
-      // crear la carpeta del repositorio en el sistema de archivos
-      Repository newRepo = repositoryStore_.create(repoName);
+         // crear la carpeta del repositorio en el sistema de archivos
+         Repository newRepo = repositoryStore_.create(repoName);
 
-      // registrar el repositorio en la base de datos
-      std::string description = "Repository for " + repoName;
-      return projectRepositoryDB_.create(newRepo.name, description, ownerOpt->idUser);
+         // registrar el repositorio en la base de datos
+         std::string description = "Repository for " + repoName;
+
+         projectRepositoryDB_.addCommit(
+            ownerOpt->idUser,
+            std::nullopt,
+            std::nullopt,
+            true,
+            "CREATE_REPOSITORY",
+            "Creating repository: " + repoName
+         );
+
+         return projectRepositoryDB_.create(newRepo.name, description, ownerOpt->idUser);
+
+      } catch (const std::exception &e) {
+         projectRepositoryDB_.addCommit(
+            ownerOpt.has_value() ? ownerOpt->idUser : -1,
+            std::nullopt,
+            std::nullopt,
+            false,
+            "CREATE_REPOSITORY",
+            std::string("Failed to create repository: ") + e.what()
+         );
+         throw; // que suba la excepción al llamador
+      }
    }
 
 private:

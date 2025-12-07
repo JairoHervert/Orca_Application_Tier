@@ -295,6 +295,109 @@ public:
    }
 
 
+   /************* acciones sobre la tabla de commits *************/
+   bool addCommit(
+         int idUser,
+         std::optional<int> idFile,
+         std::optional<std::string> signature,
+         bool isAccepted,
+         const std::string &command,
+         const std::string &description) override
+   {
+      try {
+         int isAcceptedInt = isAccepted ? 1 : 0;
+
+         int idFileValue = 0;
+         soci::indicator idFileInd = soci::i_null;
+         if (idFile.has_value()) {
+            idFileValue = *idFile;
+            idFileInd   = soci::i_ok;
+         }
+
+         std::string sigValue;
+         soci::indicator sigInd = soci::i_null;
+         if (signature.has_value() && !signature->empty()) {
+            sigValue = *signature;
+            sigInd   = soci::i_ok;
+         }
+
+         soci::statement st = (sql_.prepare <<
+            "INSERT INTO commits "
+            "  (iduser, idsourcefile, digitalsignature, isaccepted, date, command, description) "
+            "VALUES "
+            "  (:iduser, :idsourcefile, :digitalsignature, :isaccepted, NOW(), :command, :description)",
+            soci::use(idUser, "iduser"),
+            soci::use(idFileValue, idFileInd, "idsourcefile"),
+            soci::use(sigValue, sigInd, "digitalsignature"),
+            soci::use(isAcceptedInt, "isaccepted"),
+            soci::use(command, "command"),
+            soci::use(description, "description")
+         );
+
+         st.execute(true);
+         std::size_t affected = st.get_affected_rows();
+         return affected == 1;
+
+      } catch (const std::exception &e) {
+         std::cerr << "[DBProjectRepository::addCommit] " << e.what() << "\n";
+         return false;
+      }
+   }
+
+
+
+   std::vector<Commit> getCommits() override {
+      std::vector<Commit> commits;
+
+      try {
+         soci::rowset<soci::row> rs = (
+            sql_.prepare <<
+               "SELECT idcommits, iduser, idsourcefile, digitalsignature, "
+               "       isaccepted, date, command, description "
+               "FROM commits "
+               "ORDER BY date DESC"
+         );
+
+         for (const auto &row : rs) {
+            Commit c;
+
+            c.idcommits = row.get<int>(0);
+            c.iduser    = row.get<int>(1);
+
+            // idsourcefile puede ser NULL
+            if (row.get_indicator(2) == soci::i_null) {
+               c.idsourcefile = std::nullopt;
+            } else {
+               c.idsourcefile = row.get<int>(2);
+            }
+
+            // digitalsignature puede ser NULL
+            if (row.get_indicator(3) == soci::i_null) {
+               c.digitalsignature = std::nullopt;
+            } else {
+               c.digitalsignature = row.get<std::string>(3);
+            }
+
+            c.isaccepted = row.get<int>(4) != 0;   // o row.get<bool>(4) si el mapeo lo permite
+            c.date       = row.get<std::string>(5);
+            c.command    = row.get<std::string>(6);
+
+            // description puede ser NULL
+            if (row.get_indicator(7) == soci::i_null) {
+               c.description = std::nullopt;
+            } else {
+               c.description = row.get<std::string>(7);
+            }
+
+            commits.push_back(c);
+         }
+
+      } catch (const std::exception &e) {
+         std::cerr << "[DBProjectRepository::getCommits] " << e.what() << "\n";
+      }
+
+      return commits;
+   }
 
 private:
    soci::session &sql_;
