@@ -792,7 +792,7 @@ void HttpApi::registerRoutes(
             }
 
             // 5. Ejecutar caso de uso
-            std::map<std::string, std::string> fileHashes = hashRepoFilesCreate.execute(repoName, "userEmail", "userPassword");
+            std::map<std::string, std::string> fileHashes = hashRepoFilesCreate.execute(repoName, userEmail, userPassword);
 
             // 6. Construir respuesta JSON
             nlohmann::json responseBody;

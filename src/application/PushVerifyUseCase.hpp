@@ -32,14 +32,43 @@ public:
       auto repoOpt = DBProjectRepository_.findByName(repoName);
       
       if (!userOpt.has_value()) {
-         std::cerr << "User not found: " << userEmail << std::endl;
+         throw std::runtime_error("User not found: " + userEmail);
          return false;
       }
 
       if (!repoOpt.has_value()) {
-         std::cerr << "Repository not found: " << repoName << std::endl;
+         throw std::runtime_error("Repository not found: " + repoName);         
          return false;
       }
+
+      // ver que el repositorio tambien exista en el storage
+      auto repoStoreOpt = repositoryStore_.findByName(repoName);
+      if (!repoStoreOpt.has_value()) {
+         throw  std::runtime_error("Repository not found in storage: " + repoName);
+      }
+
+      // verificar la contraseña del usuario
+      if (!userRepository_.isValidPassword(userEmail, userPassword)) {
+         throw std::runtime_error("Invalid password for user: " + userEmail);
+         return false;
+      }
+
+      // ver que el usuario este verificado y activo
+      if (!userRepository_.isVerifiedUser(userEmail)) {
+         throw std::runtime_error("User is not verified: " + userEmail);
+         return false;
+      }
+      if (!userRepository_.isStatusActive(userEmail)) {
+         throw std::runtime_error("User is not active: " + userEmail);
+         return false;
+      }
+
+      // Revisar que el usuario tenga acceso al proyecto o sea el owner o senior
+      if (!DBProjectRepository_.existsUserInProject(repoOpt->idProject, userOpt->idUser) && repoOpt->ownerId != userOpt->idUser && !userRepository_.isSeniorUser(userEmail)) {
+         throw std::runtime_error("User does not have access to the project: " + repoName);
+         return false;
+      }
+
 
       // 2. Guardar el tar en disco. Usa la carpeta workspace del repositoryStore_
       std::filesystem::path tempTarPath = repositoryStore_.saveTarToWorkspace(tarContent, tarFilename);
@@ -54,6 +83,21 @@ public:
 
       // 4. Calcular el hash de cada archivo
       for (const auto& [relativePath, signatureB64] : fileSignatures) {
+
+         // Verificar que el usuario tiene permiso sobre el archivo (tambien puede modificar si es owner o senior)
+         bool hasPerm = DBProjectRepository_.existsUserFilePermission(userOpt->idUser, repoOpt->idProject) ||
+                        repoOpt->ownerId == userOpt->idUser ||
+                        userRepository_.isSeniorUser(userEmail);
+                        
+         if (!hasPerm) {
+            std::cerr << "User " << userOpt->idUser << " does not have permission for file: " << relativePath << std::endl;
+            // Limpiar archivos temporales del workspace
+            std::string identifier = std::filesystem::path(tarFilename).stem().string();
+            repositoryStore_.cleanWorkspace(identifier);
+            throw std::runtime_error("User does not have permission for file: " + relativePath);
+            return false;
+         }
+
          std::filesystem::path fullFilePath = extractedFolderPath / relativePath;
 
          // Calcular hash SHA256 en base64

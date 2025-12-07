@@ -23,6 +23,40 @@ public:
 
    std::map<std::string, std::string> execute(const std::string &repoName, const std::string &userEmail, const std::string &userPassword) {
       // 1-3. Validaciones...
+      auto userOpt = userRepository_.findByEmail(userEmail);
+      auto repoOpt = DBProjectRepository_.findByName(repoName);
+      if (!userOpt.has_value()) {
+         throw std::runtime_error("User not found: " + userEmail);
+      }
+      if (!repoOpt.has_value()) {
+         throw std::runtime_error("Repository not found: " + repoName);
+      }
+
+      // ver que el repositorio tambien exista en el storage
+      auto repoStoreOpt = repositoryStore_.findByName(repoName);
+      if (!repoStoreOpt.has_value()) {
+         throw  std::runtime_error("Repository not found in storage: " + repoName);
+      }
+
+      // verificar la contraseña del usuario
+      if (!userRepository_.isValidPassword(userEmail, userPassword)) {
+         throw std::runtime_error("Invalid password for user: " + userEmail);
+      }
+
+      // Ver que el usuario este verificado y activo
+      if (!userRepository_.isVerifiedUser(userEmail)) {
+         throw std::runtime_error("User is not verified: " + userEmail);
+      }
+      if (!userRepository_.isStatusActive(userEmail)) {
+         throw std::runtime_error("User is not active: " + userEmail);
+      }
+
+      // Revisar que el usuario tenga acceso al proyecto o sea el owner o senior
+      if (!DBProjectRepository_.existsUserInProject(repoOpt->idProject, userOpt->idUser) && repoOpt->ownerId != userOpt->idUser && !userRepository_.isSeniorUser(userEmail)) {
+         throw std::runtime_error("User does not have access to the project: " + repoName);
+      }
+
+      
       
       // 4. Listar todos los archivos del repositorio
       std::vector<std::filesystem::path> files = repositoryStore_.listAllFiles(repoName);
