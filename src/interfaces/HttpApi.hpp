@@ -16,6 +16,7 @@
 #include "../application/DecipherRepositoryUseCase.hpp"
 #include "../application/HashFilesUseCase.hpp"
 #include "../application/PushVerifyUseCase.hpp"
+#include "../application/AddUserToFileUseCase.hpp"
 
 /////////  caso de uso exclusivo para pruebas  //////////////////////
 #include "../application/testUseCase.hpp"
@@ -40,6 +41,7 @@ public:
       DecipherRepositoryUseCase &decipherRepoUseCase,
       HashFilesUseCase &hashRepoFilesCreate,
       PushVerifyUseCase &pushVerifyUseCase,
+      AddUserToFileUseCase &addUserToFileUseCase,
 
 
       TestUseCase &testUseCase  // Caso de uso exclusivo para pruebas

@@ -22,6 +22,7 @@ void HttpApi::registerRoutes(
    DecipherRepositoryUseCase &decipherRepoUseCase,
    HashFilesUseCase &hashRepoFilesCreate,
    PushVerifyUseCase &pushVerifyUseCase,
+   AddUserToFileUseCase &addUserToFileUseCase,
 
    TestUseCase &testUseCase  // Caso de uso exclusivo para pruebas
 ) {
@@ -915,6 +916,84 @@ void HttpApi::registerRoutes(
       }
    );
 
+   /***********************************   AGREGAR UN USUARIO A UN ARCHIVO  ***********************************/
+   server_.Post("/repo/file/add_user",
+      [&addUserToFileUseCase](const httplib::Request& req, httplib::Response& res) {
+         try {
+            // 1. Verificar que haya body
+            if (req.body.empty()) {
+               res.status = 400;
+               res.set_content("Request body is empty", "text/plain");
+               return;
+            }
+
+            // 2. Parsear JSON del body
+            nlohmann::json body = nlohmann::json::parse(req.body);
+
+            // 3. Extraer campos necesarios
+            if (!body.contains("approver_email") || !body.contains("approver_password")||
+               !body.contains("file_name") || !body.contains("project_name") || !body.contains("user_email")) {
+               res.status = 400;
+               res.set_content(
+                  "Missing required fields: "
+                  "'approver_email', 'approver_password', "
+                  "'file_name', 'project_name', 'user_email'",
+                  "text/plain"
+               );
+               return;
+            }
+
+            std::string approverEmail    = body["approver_email"].get<std::string>();
+            std::string approverPassword = body["approver_password"].get<std::string>();
+            std::string fileName         = body["file_name"].get<std::string>();
+            std::string projectName      = body["project_name"].get<std::string>();
+            std::string userEmail        = body["user_email"].get<std::string>();
+
+            // 4. Validaciones simples de campos vacíos
+            if (approverEmail.empty()    || approverPassword.empty() ||
+               fileName.empty()         || projectName.empty()      ||
+               userEmail.empty()) {
+               
+               res.status = 400;
+               res.set_content("Fields cannot be empty", "text/plain");
+               return;
+            }
+
+            // 5. Ejecutar caso de uso
+            bool ok = addUserToFileUseCase.execute(
+               approverEmail,
+               approverPassword,
+               fileName,
+               projectName,
+               userEmail
+            );
+
+            // 6. Construir respuesta JSON
+            nlohmann::json responseBody;
+            responseBody["status"]          = ok ? "ok" : "failed";
+            responseBody["project_name"]    = projectName;
+            responseBody["file_name"]       = fileName;
+            responseBody["target_user"]     = userEmail;
+            responseBody["approver_email"]  = approverEmail;
+
+            res.status = ok ? 200 : 500;
+            res.set_content(responseBody.dump(2), "application/json");
+
+            std::cout << "AddUserToFileUseCase: user " << userEmail
+                     << " added to file " << fileName
+                     << " in project " << projectName
+                     << " by " << approverEmail << std::endl << std::endl;
+         }
+         catch (const nlohmann::json::parse_error &e) {
+            res.status = 400;
+            res.set_content(std::string("Invalid JSON: ") + e.what(), "text/plain");
+         } catch (const std::exception &e) {
+            res.status = 500;
+            std::cerr << "Error processing push: " << e.what() << std::endl;
+            res.set_content(std::string("Internal error: ") + e.what(), "text/plain");
+         }
+      }
+   );
 
 }
 

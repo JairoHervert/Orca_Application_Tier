@@ -28,6 +28,7 @@
 #include "application/DecipherRepositoryUseCase.hpp"
 #include "application/HashFilesUseCase.hpp"
 #include "application/PushVerifyUseCase.hpp"
+#include "application/AddUserToFileUseCase.hpp"
 
 //////////////// Caso de uso exclusivo para pruebas ////////////////////////
 #include "application/testUseCase.hpp"
@@ -68,6 +69,7 @@ int main() {
       DecipherRepositoryUseCase decipherRepoUseCase{repoStore, userRepo, projectRepoDB};
       HashFilesUseCase hashRepoFilesCreate{repoStore, projectRepoDB, userRepo, pushVerifyCrypto};
       PushVerifyUseCase pushVerifyUseCase{repoStore, projectRepoDB, userRepo, pushVerifyCrypto};
+      AddUserToFileUseCase addUserToFileUseCase{projectRepoDB, userRepo};
 
       ////////////////// Caso de uso exclusivo para pruebas ////////////////////////
       TestUseCase testUseCase{repoStore, repoCrypto};
@@ -90,6 +92,7 @@ int main() {
          decipherRepoUseCase,
          hashRepoFilesCreate,
          pushVerifyUseCase,
+         addUserToFileUseCase,
 
          testUseCase  // Caso de uso exclusivo para pruebas
       );
