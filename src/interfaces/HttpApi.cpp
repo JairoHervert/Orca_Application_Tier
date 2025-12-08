@@ -26,6 +26,7 @@ void HttpApi::registerRoutes(
    CommitsListUseCase &commitsListUseCase,
    GetAESKeyUseCase &getAESKeyUseCase,
    ListAllProjectsUseCase &listAllProjectsUseCase,
+   ListEncryptedProjectsUseCase &listEncryptedProjectsUseCase,
 
    TestUseCase &testUseCase  // Caso de uso exclusivo para pruebas
 ) {
@@ -1191,6 +1192,79 @@ void HttpApi::registerRoutes(
             std::cout << "Error listing all projects: " << e.what() << std::endl;
             res.set_content(std::string("Internal error: ") + e.what(),
                            "text/plain");
+         }
+      }
+   );
+
+   /***********************************   LISTAR REPOSITORIOS CIFRADOS DE UN USUARIO  ***********************************/
+   server_.Post("/repo/list_encrypted",
+      [&listEncryptedProjectsUseCase](const httplib::Request& req, httplib::Response& res) {
+         try {
+            if (req.body.empty()) {
+               res.status = 400;
+               res.set_content("Request body is empty", "text/plain");
+               return;
+            }
+
+            nlohmann::json body = nlohmann::json::parse(req.body);
+
+            if (!body.contains("userEmail") || !body.contains("userPassword")) {
+               res.status = 400;
+               res.set_content("Missing 'userEmail' or 'userPassword' field", "text/plain");
+               return;
+            }
+
+            std::string userEmail    = body["userEmail"].get<std::string>();
+            std::string userPassword = body["userPassword"].get<std::string>();
+
+            if (userEmail.empty() || userPassword.empty()) {
+               res.status = 400;
+               res.set_content("Fields 'userEmail' and 'userPassword' cannot be empty", "text/plain");
+               return;
+            }
+
+            // 1. Ejecutar caso de uso
+            std::vector<Repository> projects =
+               listEncryptedProjectsUseCase.execute(userEmail, userPassword);
+
+            // 2. Construir respuesta
+            nlohmann::json responseBody;
+            responseBody["status"]    = "ok";
+            responseBody["total"]     = projects.size();
+            responseBody["projects"]  = nlohmann::json::array();
+
+            for (const auto &p : projects) {
+               nlohmann::json pj;
+               pj["idproject"]   = p.idProject;
+               pj["name"]        = p.name;
+               pj["description"] = p.description;
+               pj["ownerId"]     = p.ownerId;
+               responseBody["projects"].push_back(pj);
+            }
+
+            res.status = 200;
+            res.set_content(responseBody.dump(2), "application/json");
+
+            std::cout << "Listed " << projects.size()
+                     << " encrypted projects for user " << userEmail
+                     << std::endl << std::endl;
+
+         } catch (const nlohmann::json::parse_error &e) {
+            res.status = 400;
+            res.set_content(std::string("Invalid JSON: ") + e.what(), "text/plain");
+         } catch (const std::runtime_error &e) {
+            // Aquí puedes separar errores de autorización
+            std::string msg = e.what();
+            if (msg.find("not allowed to list encrypted") != std::string::npos) {
+               res.status = 403; // Forbidden
+            } else {
+               res.status = 400;
+            }
+            res.set_content(msg, "text/plain");
+         } catch (const std::exception &e) {
+            res.status = 500;
+            std::cout << "Error listing encrypted projects: " << e.what() << std::endl;
+            res.set_content(std::string("Internal error: ") + e.what(), "text/plain");
          }
       }
    );

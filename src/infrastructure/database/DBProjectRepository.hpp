@@ -492,6 +492,35 @@ public:
       return projects;
    }
 
+   std::vector<Repository> getEncryptedProjects() override {
+      std::vector<Repository> projects;
+
+      try {
+         // Distintos proyectos que tienen al menos una entrada en repo_protect
+         soci::rowset<soci::row> rs = (
+            sql_.prepare <<
+               "SELECT DISTINCT p.idproject, p.projectname, p.description, p.idowner "
+               "FROM projects p "
+               "JOIN repo_protect rp ON p.idproject = rp.idproject "
+               "ORDER BY p.idproject"
+         );
+
+         for (const auto &row : rs) {
+            Repository p;
+            p.idProject   = row.get<int>(0);
+            p.name        = row.get<std::string>(1);
+            p.description = row.get<std::string>(2);
+            p.ownerId     = row.get<int>(3);
+            projects.push_back(p);
+         }
+
+      } catch (const std::exception &e) {
+         std::cerr << "[DBProjectRepository::getEncryptedProjects] "
+                   << e.what() << "\n";
+      }
+
+      return projects;
+   }
 
 
 private:

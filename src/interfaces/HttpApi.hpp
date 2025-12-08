@@ -20,6 +20,7 @@
 #include "../application/CommitsListUseCase.hpp"
 #include "../application/GetAESKeyUseCase.hpp"
 #include "../application/ListAllProjectsUseCase.hpp"
+#include "../application/ListEncryptedProjectsUseCase.hpp"
 
 /////////  caso de uso exclusivo para pruebas  //////////////////////
 #include "../application/testUseCase.hpp"
@@ -48,6 +49,7 @@ public:
       CommitsListUseCase &commitsListUseCase,
       GetAESKeyUseCase &getAESKeyUseCase,
       ListAllProjectsUseCase &listAllProjectsUseCase,
+      ListEncryptedProjectsUseCase &listEncryptedProjectsUseCase,
 
 
       TestUseCase &testUseCase  // Caso de uso exclusivo para pruebas

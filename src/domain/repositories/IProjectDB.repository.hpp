@@ -59,4 +59,5 @@ public:
 
    virtual std::vector<Repository> getAllProjects() = 0;
 
+   virtual std::vector<Repository> getEncryptedProjects() = 0;
 };
