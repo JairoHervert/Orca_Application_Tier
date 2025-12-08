@@ -555,6 +555,78 @@ public:
       return projects;
    }
 
+
+   // Obtener todos los archivos de un proyecto (sin filtrar por usuario)
+   std::vector<SourceFileDB> getAllFilesInProject(int idProject) override {
+      std::vector<SourceFileDB> files;
+
+      try {
+         soci::rowset<soci::row> rs = (
+            sql_.prepare <<
+               "SELECT idsourcefile, idproject, route "
+               "FROM sourcefiles "
+               "WHERE idproject = :idProject "
+               "ORDER BY route",
+               soci::use(idProject, "idProject")
+         );
+
+         for (const auto &row : rs) {
+            SourceFileDB f;
+            f.idsourcefile = row.get<int>(0);
+            f.idproject    = row.get<int>(1);
+            f.route        = row.get<std::string>(2);
+            files.push_back(f);
+         }
+
+      } catch (const std::exception &e) {
+         std::cerr << "[DBProjectRepository::getAllFilesInProject] "
+                   << e.what() << "\n";
+      }
+
+      return files;
+   }
+
+   // Obtener los archivos del proyecto a los que un usuario tiene permiso
+   std::vector<SourceFileDB> getFilesForUserInProject(int idUser, int idProject) override {
+      std::vector<SourceFileDB> files;
+
+      try {
+         // Regla: el usuario ve archivos del proyecto donde:
+         //  - tiene un registro en filepermissions, o
+         //  - es el owner del proyecto.
+         //
+         // Nota: la parte "es senior" la manejamos en el caso de uso,
+         // aquí solo hacemos la consulta por usuario/proyecto.
+         soci::rowset<soci::row> rs = (
+            sql_.prepare <<
+               "SELECT DISTINCT sf.idsourcefile, sf.idproject, sf.route "
+               "FROM sourcefiles sf "
+               "JOIN projects p ON sf.idproject = p.idproject "
+               "LEFT JOIN filepermissions fp ON sf.idsourcefile = fp.idsourcefile "
+               "WHERE sf.idproject = :idProject "
+               "  AND (p.idowner = :idUser OR fp.iduser = :idUser) "
+               "ORDER BY sf.route",
+               soci::use(idProject, "idProject"),
+               soci::use(idUser,    "idUser")
+         );
+
+         for (const auto &row : rs) {
+            SourceFileDB f;
+            f.idsourcefile = row.get<int>(0);
+            f.idproject    = row.get<int>(1);
+            f.route        = row.get<std::string>(2);
+            files.push_back(f);
+         }
+
+      } catch (const std::exception &e) {
+         std::cerr << "[DBProjectRepository::getFilesForUserInProject] "
+                   << e.what() << "\n";
+      }
+
+      return files;
+   }
+
+
 private:
    soci::session &sql_;
 };

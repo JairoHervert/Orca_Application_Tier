@@ -22,6 +22,7 @@
 #include "../application/ListAllProjectsUseCase.hpp"
 #include "../application/ListEncryptedProjectsUseCase.hpp"
 #include "../application/ListUserAccessibleProjectsUseCase.hpp"
+#include "../application/ListUserFilesInProjectUseCase.hpp"
 
 /////////  caso de uso exclusivo para pruebas  //////////////////////
 #include "../application/testUseCase.hpp"
@@ -52,6 +53,7 @@ public:
       ListAllProjectsUseCase &listAllProjectsUseCase,
       ListEncryptedProjectsUseCase &listEncryptedProjectsUseCase,
       ListUserAccessibleProjectsUseCase &listUserAccessibleProjectsUseCase,
+      ListUserFilesInProjectUseCase &listUserFilesInProjectUseCase,
 
 
       TestUseCase &testUseCase  // Caso de uso exclusivo para pruebas

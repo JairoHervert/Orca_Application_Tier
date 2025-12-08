@@ -34,6 +34,7 @@
 #include "application/ListAllProjectsUseCase.hpp"
 #include "application/ListEncryptedProjectsUseCase.hpp"
 #include "application/ListUserAccessibleProjectsUseCase.hpp"
+#include "application/ListUserFilesInProjectUseCase.hpp"
 
 //////////////// Caso de uso exclusivo para pruebas ////////////////////////
 #include "application/testUseCase.hpp"
@@ -80,6 +81,7 @@ int main() {
       ListAllProjectsUseCase listAllProjectsUseCase{projectRepoDB};
       ListEncryptedProjectsUseCase listEncryptedProjectsUseCase{projectRepoDB, userRepo};
       ListUserAccessibleProjectsUseCase listUserAccessibleProjectsUseCase{projectRepoDB, userRepo};
+      ListUserFilesInProjectUseCase listUserFilesInProjectUseCase{projectRepoDB, userRepo};
       
 
       ////////////////// Caso de uso exclusivo para pruebas ////////////////////////
@@ -109,6 +111,7 @@ int main() {
          listAllProjectsUseCase,
          listEncryptedProjectsUseCase,
          listUserAccessibleProjectsUseCase,
+         listUserFilesInProjectUseCase,
 
          testUseCase  // Caso de uso exclusivo para pruebas
       );

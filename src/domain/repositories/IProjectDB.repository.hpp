@@ -62,4 +62,8 @@ public:
    virtual std::vector<Repository> getEncryptedProjects() = 0;
 
    virtual std::vector<Repository> getProjectsForUser(int idUser) = 0;
+
+   virtual std::vector<SourceFileDB> getAllFilesInProject(int idProject) = 0;
+
+   virtual std::vector<SourceFileDB> getFilesForUserInProject(int idUser, int idProject) = 0;
 };

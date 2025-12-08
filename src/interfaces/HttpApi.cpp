@@ -28,6 +28,7 @@ void HttpApi::registerRoutes(
    ListAllProjectsUseCase &listAllProjectsUseCase,
    ListEncryptedProjectsUseCase &listEncryptedProjectsUseCase,
    ListUserAccessibleProjectsUseCase &listUserAccessibleProjectsUseCase,
+   ListUserFilesInProjectUseCase &listUserFilesInProjectUseCase,
 
    TestUseCase &testUseCase  // Caso de uso exclusivo para pruebas
 ) {
@@ -1336,6 +1337,71 @@ void HttpApi::registerRoutes(
       }
    );
 
+
+   /***********************************   LISTAR ARCHIVOS DE UN REPOSITORIO PARA UN USUARIO  ***********************************/
+   server_.Post("/repo/list_files",
+      [&listUserFilesInProjectUseCase](const httplib::Request& req, httplib::Response& res) {
+         try {
+            if (req.body.empty()) {
+               res.status = 400;
+               res.set_content("Request body is empty", "text/plain");
+               return;
+            }
+
+            nlohmann::json body = nlohmann::json::parse(req.body);
+
+            if (!body.contains("userEmail") ||
+               !body.contains("userPassword") ||
+               !body.contains("projectName")) {
+               res.status = 400;
+               res.set_content(
+                  "Missing 'userEmail', 'userPassword' or 'projectName' field",
+                  "text/plain"
+               );
+               return;
+            }
+
+            std::string userEmail    = body["userEmail"].get<std::string>();
+            std::string userPassword = body["userPassword"].get<std::string>();
+            std::string projectName  = body["projectName"].get<std::string>();
+
+            if (userEmail.empty() || userPassword.empty() || projectName.empty()) {
+               res.status = 400;
+               res.set_content("Fields cannot be empty", "text/plain");
+               return;
+            }
+
+            auto files = listUserFilesInProjectUseCase.execute(
+               userEmail,
+               userPassword,
+               projectName
+            );
+
+            nlohmann::json responseBody;
+            responseBody["status"]  = "ok";
+            responseBody["project"] = projectName;
+            responseBody["total"]   = files.size();
+            responseBody["files"]   = nlohmann::json::array();
+
+            for (const auto &f : files) {
+               nlohmann::json fj;
+               fj["idsourcefile"] = f.idsourcefile;
+               fj["route"]        = f.route;
+               responseBody["files"].push_back(fj);
+            }
+
+            res.status = 200;
+            res.set_content(responseBody.dump(2), "application/json");
+
+         } catch (const nlohmann::json::parse_error &e) {
+            res.status = 400;
+            res.set_content(std::string("Invalid JSON: ") + e.what(), "text/plain");
+         } catch (const std::exception &e) {
+            res.status = 500;
+            res.set_content(std::string("Internal error: ") + e.what(), "text/plain");
+         }
+      }
+   );
 
 }
 
