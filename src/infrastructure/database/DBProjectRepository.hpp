@@ -522,6 +522,38 @@ public:
       return projects;
    }
 
+   // Proyectos a los que tiene acceso un usuario (owner o en users_has_projects)
+   std::vector<Repository> getProjectsForUser(int idUser) override {
+      std::vector<Repository> projects;
+
+      try {
+         soci::rowset<soci::row> rs = (
+            sql_.prepare <<
+               "SELECT DISTINCT p.idproject, p.projectname, p.description, p.idowner "
+               "FROM projects p "
+               "LEFT JOIN users_has_projects up "
+               "  ON p.idproject = up.idproject "
+               "WHERE p.idowner = :idUser "
+               "   OR up.iduser = :idUser "
+               "ORDER BY p.idproject ASC",
+            soci::use(idUser, "idUser")
+         );
+
+         for (const auto &row : rs) {
+            Repository p;
+            p.idProject   = row.get<int>(0);
+            p.name        = row.get<std::string>(1);
+            p.description = row.get<std::string>(2);
+            p.ownerId     = row.get<int>(3);
+            projects.push_back(p);
+         }
+
+      } catch (const std::exception &e) {
+         std::cerr << "[DBProjectRepository::getProjectsForUser] " << e.what() << "\n";
+      }
+
+      return projects;
+   }
 
 private:
    soci::session &sql_;

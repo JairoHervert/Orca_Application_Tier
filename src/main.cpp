@@ -33,6 +33,7 @@
 #include "application/GetAESKeyUseCase.hpp"
 #include "application/ListAllProjectsUseCase.hpp"
 #include "application/ListEncryptedProjectsUseCase.hpp"
+#include "application/ListUserAccessibleProjectsUseCase.hpp"
 
 //////////////// Caso de uso exclusivo para pruebas ////////////////////////
 #include "application/testUseCase.hpp"
@@ -78,6 +79,7 @@ int main() {
       GetAESKeyUseCase getAESKeyUseCase{projectRepoDB, userRepo};
       ListAllProjectsUseCase listAllProjectsUseCase{projectRepoDB};
       ListEncryptedProjectsUseCase listEncryptedProjectsUseCase{projectRepoDB, userRepo};
+      ListUserAccessibleProjectsUseCase listUserAccessibleProjectsUseCase{projectRepoDB, userRepo};
       
 
       ////////////////// Caso de uso exclusivo para pruebas ////////////////////////
@@ -106,6 +108,7 @@ int main() {
          getAESKeyUseCase,
          listAllProjectsUseCase,
          listEncryptedProjectsUseCase,
+         listUserAccessibleProjectsUseCase,
 
          testUseCase  // Caso de uso exclusivo para pruebas
       );

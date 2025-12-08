@@ -27,6 +27,7 @@ void HttpApi::registerRoutes(
    GetAESKeyUseCase &getAESKeyUseCase,
    ListAllProjectsUseCase &listAllProjectsUseCase,
    ListEncryptedProjectsUseCase &listEncryptedProjectsUseCase,
+   ListUserAccessibleProjectsUseCase &listUserAccessibleProjectsUseCase,
 
    TestUseCase &testUseCase  // Caso de uso exclusivo para pruebas
 ) {
@@ -1268,6 +1269,73 @@ void HttpApi::registerRoutes(
          }
       }
    );
+
+
+   /***********************************   LISTAR REPOSITORIOS ACCESIBLES DE UN USUARIO  ***********************************/
+   server_.Post("/repo/list_accessible",
+      [&listUserAccessibleProjectsUseCase](const httplib::Request& req,
+                                          httplib::Response& res) {
+         try {
+            if (req.body.empty()) {
+               res.status = 400;
+               res.set_content("Request body is empty", "text/plain");
+               return;
+            }
+
+            nlohmann::json body = nlohmann::json::parse(req.body);
+
+            if (!body.contains("userEmail") || !body.contains("userPassword")) {
+               res.status = 400;
+               res.set_content("Missing 'userEmail' or 'userPassword' field", "text/plain");
+               return;
+            }
+
+            std::string userEmail    = body["userEmail"].get<std::string>();
+            std::string userPassword = body["userPassword"].get<std::string>();
+
+            if (userEmail.empty() || userPassword.empty()) {
+               res.status = 400;
+               res.set_content("Fields 'userEmail' and 'userPassword' cannot be empty", "text/plain");
+               return;
+            }
+
+            // 1. Ejecutar caso de uso
+            std::vector<Repository> projects =
+               listUserAccessibleProjectsUseCase.execute(userEmail, userPassword);
+
+            // 2. Construir respuesta
+            nlohmann::json responseBody;
+            responseBody["status"]   = "ok";
+            responseBody["total"]    = projects.size();
+            responseBody["projects"] = nlohmann::json::array();
+
+            for (const auto &p : projects) {
+               nlohmann::json pj;
+               pj["idproject"]   = p.idProject;
+               pj["name"]        = p.name;
+               pj["description"] = p.description;
+               pj["ownerId"]     = p.ownerId;
+               responseBody["projects"].push_back(pj);
+            }
+
+            res.status = 200;
+            res.set_content(responseBody.dump(2), "application/json");
+
+            std::cout << "Listed " << projects.size()
+                     << " accessible projects for user " << userEmail
+                     << std::endl << std::endl;
+
+         } catch (const nlohmann::json::parse_error &e) {
+            res.status = 400;
+            res.set_content(std::string("Invalid JSON: ") + e.what(), "text/plain");
+         } catch (const std::exception &e) {
+            res.status = 500;
+            std::cout << "Error listing accessible projects: " << e.what() << std::endl;
+            res.set_content(std::string("Internal error: ") + e.what(), "text/plain");
+         }
+      }
+   );
+
 
 }
 

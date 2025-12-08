@@ -21,6 +21,7 @@
 #include "../application/GetAESKeyUseCase.hpp"
 #include "../application/ListAllProjectsUseCase.hpp"
 #include "../application/ListEncryptedProjectsUseCase.hpp"
+#include "../application/ListUserAccessibleProjectsUseCase.hpp"
 
 /////////  caso de uso exclusivo para pruebas  //////////////////////
 #include "../application/testUseCase.hpp"
@@ -50,6 +51,7 @@ public:
       GetAESKeyUseCase &getAESKeyUseCase,
       ListAllProjectsUseCase &listAllProjectsUseCase,
       ListEncryptedProjectsUseCase &listEncryptedProjectsUseCase,
+      ListUserAccessibleProjectsUseCase &listUserAccessibleProjectsUseCase,
 
 
       TestUseCase &testUseCase  // Caso de uso exclusivo para pruebas
