@@ -440,6 +440,35 @@ public:
       }
    }
 
+   std::string getAESKeyForRepo(int iduser, int idproject, const std::string &project_alias) override {
+      try {
+         std::string aesKey;
+
+         sql_ << "SELECT rsa_aes "
+               "FROM repo_protect "
+               "WHERE iduser = :iduser "
+               "  AND idproject = :idproject "
+               "  AND project_alias = :project_alias "
+               "LIMIT 1",
+               soci::into(aesKey),
+               soci::use(iduser,        "iduser"),
+               soci::use(idproject,     "idproject"),
+               soci::use(project_alias, "project_alias");
+
+         // Si no hay fila, aesKey se queda vacío
+         if (!sql_.got_data()) {
+            return "";
+         }
+
+         return aesKey;
+
+      } catch (const std::exception &e) {
+         std::cerr << "[DBProjectRepository::getAESKeyForRepo] " << e.what() << "\n";
+         return "";
+      }
+   }
+
+
 private:
    soci::session &sql_;
 };

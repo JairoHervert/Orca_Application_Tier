@@ -24,6 +24,7 @@ void HttpApi::registerRoutes(
    PushVerifyUseCase &pushVerifyUseCase,
    AddUserToFileUseCase &addUserToFileUseCase,
    CommitsListUseCase &commitsListUseCase,
+   GetAESKeyUseCase &getAESKeyUseCase,
 
    TestUseCase &testUseCase  // Caso de uso exclusivo para pruebas
 ) {
@@ -1077,6 +1078,85 @@ void HttpApi::registerRoutes(
          }
       }
    );
+
+
+   /***********************************   OBTENER AES (RSA-AES) DE UN REPOSITORIO  ***********************************/
+   server_.Post("/repo/protect/get_key",
+      [&getAESKeyUseCase](const httplib::Request& req, httplib::Response& res) {
+         try {
+            if (req.body.empty()) {
+               res.status = 400;
+               res.set_content("Request body is empty", "text/plain");
+               return;
+            }
+
+            nlohmann::json body = nlohmann::json::parse(req.body);
+
+            if (!body.contains("user_email")     ||
+               !body.contains("user_password")  ||
+               !body.contains("project_name")   ||
+               !body.contains("project_alias")) {
+               res.status = 400;
+               res.set_content(
+                  "Missing required fields: 'user_email', 'user_password', "
+                  "'project_name', 'project_alias'",
+                  "text/plain"
+               );
+               return;
+            }
+
+            std::string userEmail    = body["user_email"].get<std::string>();
+            std::string userPassword = body["user_password"].get<std::string>();
+            std::string projectName  = body["project_name"].get<std::string>();
+            std::string projectAlias = body["project_alias"].get<std::string>();
+
+            if (userEmail.empty() || userPassword.empty() ||
+               projectName.empty() || projectAlias.empty()) {
+               res.status = 400;
+               res.set_content("Fields cannot be empty", "text/plain");
+               return;
+            }
+
+            // Ejecutar caso de uso
+            std::string aesKeyEnc = getAESKeyUseCase.execute(
+               userEmail,
+               userPassword,
+               projectName,
+               projectAlias
+            );
+
+            nlohmann::json responseBody;
+            responseBody["status"]        = "ok";
+            responseBody["user_email"]    = userEmail;
+            responseBody["project_name"]  = projectName;
+            responseBody["project_alias"] = projectAlias;
+            responseBody["aes_rsa_key"]   = aesKeyEnc; // clave AES cifrada con RSA
+
+            res.status = 200;
+            res.set_content(responseBody.dump(2), "application/json");
+
+            std::cout << "AES key (RSA-wrapped) retrieved for user " << userEmail
+                     << " and project " << projectName
+                     << " (alias: " << projectAlias << ")"
+                     << std::endl << std::endl;
+         }
+         catch (const nlohmann::json::parse_error &e) {
+            res.status = 400;
+            res.set_content(std::string("Invalid JSON: ") + e.what(), "text/plain");
+         }
+         catch (const std::exception &e) {
+            res.status = 500;
+            std::cout << "Error getting AES key: " << e.what() << std::endl << std::endl;
+            res.set_content(std::string("Internal error: ") + e.what(), "text/plain");
+         }
+         catch (...) {
+            res.status = 500;
+            std::cout << "Unknown error occurred while getting AES key." << std::endl << std::endl;
+            res.set_content("Internal error: Unknown error occurred", "text/plain");
+         }
+      }
+   );
+
 
 }
 

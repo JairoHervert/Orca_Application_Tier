@@ -54,4 +54,8 @@ public:
 
 
    virtual bool deleteFileFromProject(const std::string &relativePath, int idProject) = 0;
+
+   // IProjectDB.repository.hpp
+   virtual std::string getAESKeyForRepo(int iduser, int idproject, const std::string &project_alias) = 0;
+
 };

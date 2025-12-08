@@ -30,6 +30,7 @@
 #include "application/PushVerifyUseCase.hpp"
 #include "application/AddUserToFileUseCase.hpp"
 #include "application/CommitsListUseCase.hpp"
+#include "application/GetAESKeyUseCase.hpp"
 
 //////////////// Caso de uso exclusivo para pruebas ////////////////////////
 #include "application/testUseCase.hpp"
@@ -72,6 +73,7 @@ int main() {
       PushVerifyUseCase pushVerifyUseCase{repoStore, projectRepoDB, userRepo, pushVerifyCrypto};
       AddUserToFileUseCase addUserToFileUseCase{projectRepoDB, userRepo};
       CommitsListUseCase commitsListUseCase{projectRepoDB};
+      GetAESKeyUseCase getAESKeyUseCase{projectRepoDB, userRepo};
 
       ////////////////// Caso de uso exclusivo para pruebas ////////////////////////
       TestUseCase testUseCase{repoStore, repoCrypto};
@@ -96,6 +98,7 @@ int main() {
          pushVerifyUseCase,
          addUserToFileUseCase,
          commitsListUseCase,
+         getAESKeyUseCase,
 
          testUseCase  // Caso de uso exclusivo para pruebas
       );

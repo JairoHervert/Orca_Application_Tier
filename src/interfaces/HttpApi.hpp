@@ -18,6 +18,7 @@
 #include "../application/PushVerifyUseCase.hpp"
 #include "../application/AddUserToFileUseCase.hpp"
 #include "../application/CommitsListUseCase.hpp"
+#include "../application/GetAESKeyUseCase.hpp"
 
 /////////  caso de uso exclusivo para pruebas  //////////////////////
 #include "../application/testUseCase.hpp"
@@ -44,6 +45,7 @@ public:
       PushVerifyUseCase &pushVerifyUseCase,
       AddUserToFileUseCase &addUserToFileUseCase,
       CommitsListUseCase &commitsListUseCase,
+      GetAESKeyUseCase &getAESKeyUseCase,
 
 
       TestUseCase &testUseCase  // Caso de uso exclusivo para pruebas
