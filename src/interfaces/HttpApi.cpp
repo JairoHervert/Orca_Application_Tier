@@ -25,6 +25,7 @@ void HttpApi::registerRoutes(
    AddUserToFileUseCase &addUserToFileUseCase,
    CommitsListUseCase &commitsListUseCase,
    GetAESKeyUseCase &getAESKeyUseCase,
+   ListAllProjectsUseCase &listAllProjectsUseCase,
 
    TestUseCase &testUseCase  // Caso de uso exclusivo para pruebas
 ) {
@@ -1157,6 +1158,42 @@ void HttpApi::registerRoutes(
       }
    );
 
+   /***********************************   LISTAR TODOS LOS REPOSITORIOS  ***********************************/
+   server_.Get("/repo/list_all",
+      [&listAllProjectsUseCase](const httplib::Request& req, httplib::Response& res) {
+         try {
+            // 1. Ejecutar caso de uso (sin parámetros)
+            std::vector<Repository> projects = listAllProjectsUseCase.execute();
+
+            // 2. Construir respuesta JSON
+            nlohmann::json responseBody;
+            responseBody["status"]   = "ok";
+            responseBody["total"]    = projects.size();
+            responseBody["projects"] = nlohmann::json::array();
+
+            for (const auto &p : projects) {
+               nlohmann::json pj;
+               pj["idproject"]   = p.idProject;
+               pj["name"]        = p.name;
+               pj["description"] = p.description;
+               pj["ownerId"]     = p.ownerId;
+               responseBody["projects"].push_back(pj);
+            }
+
+            res.status = 200;
+            res.set_content(responseBody.dump(2), "application/json");
+
+            std::cout << "Listed " << projects.size()
+                     << " projects (no auth)" << std::endl << std::endl;
+
+         } catch (const std::exception &e) {
+            res.status = 500;
+            std::cout << "Error listing all projects: " << e.what() << std::endl;
+            res.set_content(std::string("Internal error: ") + e.what(),
+                           "text/plain");
+         }
+      }
+   );
 
 }
 

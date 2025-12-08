@@ -468,6 +468,31 @@ public:
       }
    }
 
+   std::vector<Repository> getAllProjects() override {
+      std::vector<Repository> projects;
+      try {
+         soci::rowset<soci::row> rs = (
+            sql_.prepare <<
+               "SELECT idproject, projectname, description, idowner "
+               "FROM projects "
+               "ORDER BY idproject ASC"
+         );
+
+         for (const auto &row : rs) {
+            Repository p;
+            p.idProject   = row.get<int>(0);
+            p.name        = row.get<std::string>(1);
+            p.description = row.get<std::string>(2);
+            p.ownerId     = row.get<int>(3);
+            projects.push_back(p);
+         }
+      } catch (const std::exception &e) {
+         std::cerr << "[DBProjectRepository::getAllProjects] " << e.what() << "\n";
+      }
+      return projects;
+   }
+
+
 
 private:
    soci::session &sql_;

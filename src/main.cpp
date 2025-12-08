@@ -31,6 +31,7 @@
 #include "application/AddUserToFileUseCase.hpp"
 #include "application/CommitsListUseCase.hpp"
 #include "application/GetAESKeyUseCase.hpp"
+#include "application/ListAllProjectsUseCase.hpp"
 
 //////////////// Caso de uso exclusivo para pruebas ////////////////////////
 #include "application/testUseCase.hpp"
@@ -74,6 +75,7 @@ int main() {
       AddUserToFileUseCase addUserToFileUseCase{projectRepoDB, userRepo};
       CommitsListUseCase commitsListUseCase{projectRepoDB};
       GetAESKeyUseCase getAESKeyUseCase{projectRepoDB, userRepo};
+      ListAllProjectsUseCase listAllProjectsUseCase{projectRepoDB};
 
       ////////////////// Caso de uso exclusivo para pruebas ////////////////////////
       TestUseCase testUseCase{repoStore, repoCrypto};
@@ -99,6 +101,7 @@ int main() {
          addUserToFileUseCase,
          commitsListUseCase,
          getAESKeyUseCase,
+         listAllProjectsUseCase,
 
          testUseCase  // Caso de uso exclusivo para pruebas
       );

@@ -19,6 +19,7 @@
 #include "../application/AddUserToFileUseCase.hpp"
 #include "../application/CommitsListUseCase.hpp"
 #include "../application/GetAESKeyUseCase.hpp"
+#include "../application/ListAllProjectsUseCase.hpp"
 
 /////////  caso de uso exclusivo para pruebas  //////////////////////
 #include "../application/testUseCase.hpp"
@@ -46,6 +47,7 @@ public:
       AddUserToFileUseCase &addUserToFileUseCase,
       CommitsListUseCase &commitsListUseCase,
       GetAESKeyUseCase &getAESKeyUseCase,
+      ListAllProjectsUseCase &listAllProjectsUseCase,
 
 
       TestUseCase &testUseCase  // Caso de uso exclusivo para pruebas
