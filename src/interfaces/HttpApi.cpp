@@ -1407,7 +1407,7 @@ void HttpApi::registerRoutes(
 
 void HttpApi::listen(const char* host, int port) {
    std::cout << "Intentando iniciar servidor HTTPS en https://" << host << ":" << port << std::endl;
-   std::cout << "Ahoa con json y msql!" << std::endl;
+   // std::cout << "Ahoa con json y msql!" << std::endl;
    
    // Verificar que los archivos de certificado y clave existen
 
